@@ -1,0 +1,84 @@
+# =====================================================================
+# 1. BÍ MẬT — tuyệt đối không commit
+# =====================================================================
+.env
+.env.*
+!.env.example
+kaggle.json
+*.pem
+*.key
+
+# =====================================================================
+# 2. DỮ LIỆU — chứa tên reviewer / nội dung review / id thật (xem README mục 11)
+#    Pipeline ghi mọi thứ vào các thư mục dưới đây, nên chỉ cần loại thư mục.
+# =====================================================================
+# raw/ (tên reviewer), interim/ (id thật), processed/, labels/ (gold set), benchmark/, models/
+data/
+# dữ liệu giả lập
+demo/
+# bảng/hình sinh ra; có trích nguyên văn review
+reports/
+logs/
+models/
+# bản chụp dữ liệu để chạy thử
+snapshot_*/
+# thư mục thử scraper 1 quán
+trial_1place/
+# sao lưu dữ liệu cũ, ví dụ data/raw_old_...
+data_*/
+
+# Định dạng dữ liệu (phòng khi ai đó để file ngoài thư mục trên)
+*.parquet
+*.jsonl
+*.joblib
+*.pkl
+*.sqlite
+*.db
+
+# =====================================================================
+# 3. PROFILE TRÌNH DUYỆT — chứa cookie đăng nhập Google (rất nhạy cảm, ~1 GB)
+# =====================================================================
+.chrome_profile/
+.chrome_profile_gc/
+.chrome_profile*/
+*.crx
+Singleton*
+
+# =====================================================================
+# 4. CẤU HÌNH CỤC BỘ SINH RA KHI THỬ NGHIỆM (trỏ tới thư mục ở mục 2)
+# =====================================================================
+config.snapshot*.yaml
+config.trial*.yaml
+config.local.yaml
+
+# =====================================================================
+# 5. MÔI TRƯỜNG & CÔNG CỤ
+# =====================================================================
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ipynb_checkpoints/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# =====================================================================
+# 6. HỆ ĐIỀU HÀNH / EDITOR
+# =====================================================================
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+# file khóa tạm của Word/Excel
+~$*
+
+# Claude Code: cấu hình cục bộ (không phải mã nguồn)
+.claude/

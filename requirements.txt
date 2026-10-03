@@ -1,0 +1,27 @@
+# Lõi
+pandas>=2.0
+numpy>=1.24
+pyarrow>=14
+pyyaml>=6
+scikit-learn>=1.3
+scipy>=1.10
+joblib>=1.3
+matplotlib>=3.7
+
+# Thu thập
+playwright>=1.40          # sau khi cài: python -m playwright install chromium
+requests>=2.31
+tenacity>=8.2
+python-dotenv>=1.0
+
+# Văn bản
+datasketch>=1.6           # MinHash-LSH
+pyvi>=0.1.1               # tách từ tiếng Việt
+
+# Kiểm thử
+pytest>=7
+
+# Tùy chọn (bật trong config / chạy PhoBERT trên Colab có GPU)
+# sentence-transformers>=2.6
+# transformers>=4.40
+# torch>=2.1

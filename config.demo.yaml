@@ -1,0 +1,14 @@
+# Cấu hình DEMO: kế thừa config.yaml, chỉ đổi thư mục dữ liệu sang demo/
+# để dữ liệu giả lập KHÔNG trộn với dữ liệu thật.
+base: config.yaml
+
+paths:
+  root: demo/data
+  reports: ../reports
+  logs: ../logs
+
+demo:
+  n_places: 50
+  days: 730
+  n_genuine_accounts: 6000
+  seed: 42

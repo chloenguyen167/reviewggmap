@@ -1,0 +1,50 @@
+# Từ điển teencode / viết tắt → dạng chuẩn. Định dạng: viet_tat<TAB>chuan
+# Chỉ gồm các từ ít mơ hồ; mở rộng dần khi đọc dữ liệu thật.
+ko	không
+k	không
+kh	không
+khg	không
+kg	không
+hok	không
+hông	không
+dc	được
+đc	được
+đk	được
+duoc	được
+vs	với
+j	gì
+gi	gì
+r	rồi
+rùi	rồi
+mn	mọi người
+mng	mọi người
+nv	nhân viên
+sp	sản phẩm
+bt	bình thường
+bth	bình thường
+nhiu	nhiều
+wa	quá
+wá	quá
+qá	quá
+ngta	người ta
+tks	cảm ơn
+thanks	cảm ơn
+thank	cảm ơn
+cám	cảm
+oke	ok
+okie	ok
+okela	ok
+oki	ok
+ns	nói
+trc	trước
+bn	bao nhiêu
+bnh	bao nhiêu
+lun	luôn
+thik	thích
+iu	yêu
+z	vậy
+v	vậy
+zậy	vậy
+đt	điện thoại
+sdt	số điện thoại
+sđt	số điện thoại
