@@ -1,0 +1,1079 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Gắn nhãn review Google Maps</title>
+<style>
+:root{--blue:#1a73e8;--blue-l:#e8f0fe;--txt:#202124;--sub:#70757a;--line:#dadce0;--bg:#f1f3f4;--star:#fbbc04;
+  --g:#188038;--g-l:#e6f4ea;--u:#b06000;--u-l:#fef7e0;--s:#d93025;--s-l:#fce8e6;--side:340px}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font:14px/1.45 Roboto,"Segoe UI",system-ui,-apple-system,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+button{font:inherit;cursor:pointer}
+input,select,textarea{font:inherit;color:inherit}
+a{color:var(--blue);text-decoration:none}
+a:hover{text-decoration:underline}
+[hidden]{display:none!important}
+.muted{color:var(--sub)}
+.stars{color:var(--star);letter-spacing:1px;white-space:nowrap}
+.stars .off{color:#dadce0}
+
+/* ---- khung ---- */
+#top{position:fixed;inset:0 0 auto 0;height:56px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;padding:0 16px;z-index:20}
+#top .logo{display:flex;align-items:center;gap:8px;font-size:18px;font-weight:500;white-space:nowrap}
+#top .logo .pin{width:26px;height:26px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:#ea4335;position:relative}
+#top .logo .pin:after{content:"";position:absolute;inset:8px;border-radius:50%;background:#fff}
+#top .grow{flex:1}
+#top .who{display:flex;align-items:center;gap:6px;background:var(--bg);border-radius:20px;padding:4px 6px 4px 12px}
+#top .who b{font-weight:500}
+.btn{border:1px solid var(--line);background:#fff;border-radius:18px;padding:6px 14px;color:var(--txt);display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn:hover{background:#f8f9fa}
+.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn.primary:hover{background:#1765cc}
+.btn.small{padding:3px 10px;font-size:13px}
+.btn.ghost{border-color:transparent;background:transparent}
+.badge{display:inline-block;min-width:18px;padding:0 6px;border-radius:9px;background:var(--s);color:#fff;font-size:12px;text-align:center}
+#prog{font-size:13px;color:var(--sub);white-space:nowrap}
+#app{position:fixed;inset:56px 0 0 0;display:flex}
+#side{width:var(--side);background:#fff;border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+#main{flex:1;overflow-y:auto;min-width:0}
+#mainIn{max-width:860px;margin:0 auto;padding:16px 20px 80px}
+
+/* ---- danh sách quán ---- */
+#side .sh{padding:12px 12px 8px;border-bottom:1px solid var(--line)}
+.search{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:24px;padding:7px 14px;background:#fff;box-shadow:0 1px 2px rgba(60,64,67,.15)}
+.search input{border:0;outline:0;flex:1;min-width:0;background:transparent}
+#side .sact{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:13px}
+#plist{overflow-y:auto;flex:1}
+.pgrp{padding:10px 14px 4px;font-size:12px;font-weight:500;color:var(--sub);text-transform:uppercase;letter-spacing:.3px;position:sticky;top:0;background:#fff;z-index:1;cursor:pointer;user-select:none}
+.pitem{display:flex;gap:10px;padding:8px 14px;cursor:pointer;border-left:3px solid transparent;align-items:flex-start}
+.pitem:hover{background:#f8f9fa}
+.pitem.sel{background:var(--blue-l);border-left-color:var(--blue)}
+.pitem input{margin-top:3px;cursor:pointer}
+.pitem .pi{flex:1;min-width:0}
+.pitem .pn{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pitem .pm{font-size:12px;color:var(--sub);display:flex;gap:8px;flex-wrap:wrap}
+.pbar{height:4px;background:#e8eaed;border-radius:2px;margin-top:5px;overflow:hidden}
+.pbar i{display:block;height:100%;background:var(--g)}
+
+/* ---- đầu trang quán ---- */
+.phead{background:#fff;border-radius:12px;border:1px solid var(--line);padding:18px 20px;margin-bottom:12px}
+.phead h1{font-size:22px;font-weight:400;margin:0 0 2px}
+.phead .cat{color:var(--sub);font-size:13px}
+.ov{display:flex;gap:28px;margin-top:14px;flex-wrap:wrap}
+.hist{flex:1;min-width:220px}
+.hrow{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--sub);cursor:pointer;padding:1px 0}
+.hrow:hover .hb{background:#e2e5e9}
+.hrow.on{color:var(--blue);font-weight:500}
+.hb{flex:1;height:8px;background:#e8eaed;border-radius:4px;overflow:hidden}
+.hb i{display:block;height:100%;background:var(--star);border-radius:4px}
+.big{text-align:center;min-width:110px}
+.big .n{font-size:44px;line-height:1.1}
+.stats{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.stat{background:var(--bg);border-radius:14px;padding:3px 10px;font-size:12.5px}
+.stat b{font-weight:500}
+.tl{margin-top:14px}
+.tl svg{width:100%;height:84px;display:block}
+.tl rect.b{fill:#aecbfa;cursor:pointer}
+.tl rect.b:hover,.tl rect.b.on{fill:var(--blue)}
+.tl rect.sp{fill:var(--s);pointer-events:none}
+.tl text{font-size:10px;fill:var(--sub)}
+.tl .cap{font-size:12px;color:var(--sub);display:flex;justify-content:space-between}
+
+/* ---- thanh lọc ---- */
+#bar{position:sticky;top:0;z-index:5;background:var(--bg);padding:8px 0 10px}
+#bar .row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px}
+.chip{border:1px solid var(--line);background:#fff;border-radius:16px;padding:4px 12px;font-size:13px;color:var(--txt);white-space:nowrap;user-select:none}
+.chip:hover{background:#f8f9fa}
+.chip.on{background:var(--blue-l);border-color:#d2e3fc;color:#174ea6}
+.chip .x{margin-left:4px;color:var(--sub)}
+select.chip{padding:4px 8px}
+#count{font-size:13px;color:var(--sub);margin-left:auto}
+
+/* ---- thẻ review ---- */
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px 10px;margin-bottom:10px;position:relative;scroll-margin-top:170px;scroll-margin-bottom:20px}
+.card.active{border-color:var(--blue);box-shadow:0 0 0 2px #d2e3fc}
+.card.lab-Genuine{border-left:4px solid var(--g)}
+.card.lab-Uncertain{border-left:4px solid var(--u)}
+.card.lab-Spam{border-left:4px solid var(--s)}
+.ch{display:flex;gap:12px;align-items:center}
+.av{width:40px;height:40px;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:500;font-size:16px;flex:none}
+.ch .w{flex:1;min-width:0}
+.ch .nm{font-weight:500}
+.ch .mt{font-size:12.5px;color:var(--sub)}
+.lgb{color:#e37400;font-weight:500}
+.ptag{font-size:12px;background:var(--bg);border-radius:10px;padding:2px 8px;max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lb{font-size:12px;font-weight:500;border-radius:10px;padding:2px 9px;white-space:nowrap}
+.lb.Genuine{background:var(--g-l);color:var(--g)}
+.lb.Uncertain{background:var(--u-l);color:var(--u)}
+.lb.Spam{background:var(--s-l);color:var(--s)}
+.cr{margin-top:8px;display:flex;gap:8px;align-items:center;font-size:13px;color:var(--sub);flex-wrap:wrap}
+.ct{margin-top:6px;white-space:pre-wrap;word-wrap:break-word}
+.ct.clamp{display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden}
+.ct mark{background:#fde293;border-radius:2px}
+.more{color:var(--blue);font-weight:500;background:none;border:0;padding:0;font-size:13px}
+.nott{color:var(--sub);font-style:italic;margin-top:6px}
+.phs{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.ph{position:relative;width:96px;height:96px;border-radius:8px;overflow:hidden;background:#e8eaed;cursor:zoom-in;flex:none;border:0;padding:0}
+.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.ph.dup{outline:3px solid var(--s);outline-offset:-3px}
+.ph .vid{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:26px;text-shadow:0 1px 4px rgba(0,0,0,.6)}
+.ph .dn{position:absolute;left:4px;bottom:4px;background:var(--s);color:#fff;font-size:11px;border-radius:8px;padding:0 6px}
+.ph .err{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--sub);text-align:center;padding:4px}
+.own{margin-top:10px;background:var(--bg);border-radius:8px;padding:8px 12px;font-size:13px}
+.own b{font-weight:500}
+.sigs{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.sig{border:1px solid;border-radius:14px;padding:2px 10px;font-size:12.5px;background:#fff;white-space:nowrap}
+.sig.r{border-color:#f6aea9;color:#c5221f;background:#fff8f7}
+.sig.o{border-color:#fdd663;color:#b06000;background:#fffbef}
+.sig.b{border-color:#d2e3fc;color:#174ea6;background:#f8fbff}
+.sig.on{box-shadow:inset 0 0 0 1px currentColor}
+.ev{margin-top:8px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:#fafafa}
+.ev h4{margin:0 0 6px;font-size:13px;font-weight:500}
+.mini{border-top:1px solid #eceff1;padding:8px 0}
+.mini:first-of-type{border-top:0}
+.mini .mh{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12.5px;color:var(--sub)}
+.mini .mh b{color:var(--txt);font-weight:500}
+.mini .mx{margin-top:3px;white-space:pre-wrap;font-size:13px}
+.tag{font-size:11px;border-radius:8px;padding:0 6px;background:#e8eaed;color:#3c4043}
+.tag.hot{background:var(--s-l);color:var(--s)}
+.pairs{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0}
+.pair{display:flex;gap:4px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:8px;padding:4px}
+.pair .ph{width:72px;height:72px}
+
+/* ---- thanh gán nhãn ---- */
+.lab{margin-top:10px;border-top:1px dashed var(--line);padding-top:10px}
+.flags{display:flex;gap:6px;flex-wrap:wrap}
+.fl{border:1px solid var(--line);background:#fff;border-radius:14px;padding:3px 10px;font-size:12.5px;color:#3c4043}
+.fl kbd,.lbtn kbd{font:11px ui-monospace,Menlo,monospace;color:var(--sub);margin-right:3px}
+.fl:hover{background:#f8f9fa}
+.fl.hint{border-style:dashed;border-color:#f29900;background:#fffbef}
+.fl.on{background:#3c4043;border-color:#3c4043;color:#fff}
+.fl.on kbd{color:#bdc1c6}
+.lrow{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}
+.lbtn{border:1px solid var(--line);background:#fff;border-radius:18px;padding:5px 14px;font-weight:500}
+.lbtn.g.on{background:var(--g);border-color:var(--g);color:#fff}
+.lbtn.u.on{background:#e37400;border-color:#e37400;color:#fff}
+.lbtn.s.on{background:var(--s);border-color:var(--s);color:#fff}
+.lbtn.on kbd{color:rgba(255,255,255,.8)}
+.rule{font-size:12.5px;color:var(--sub)}
+.rule b{font-weight:500}
+.warn{color:var(--u);font-size:12.5px}
+.note{flex:1;min-width:180px;border:1px solid var(--line);border-radius:16px;padding:5px 12px;font-size:13px;outline:0}
+.note:focus{border-color:var(--blue)}
+
+/* ---- trạng thái rỗng ---- */
+.empty{background:#fff;border:1px dashed var(--line);border-radius:12px;padding:40px 24px;text-align:center;color:var(--sub)}
+.empty h2{font-weight:400;color:var(--txt);margin:0 0 8px}
+#sentinel{height:40px}
+
+/* ---- lớp phủ ---- */
+.ovl{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center}
+#lb{background:rgba(0,0,0,.92);color:#fff;z-index:55}
+#lb .stage{flex:1;height:100%;display:flex;align-items:center;justify-content:center;position:relative;min-width:0}
+#lb img,#lb video{max-width:100%;max-height:100%;object-fit:contain}
+#lb .nav{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.12);border:0;color:#fff;font-size:28px;width:48px;height:64px;border-radius:8px}
+#lb .nav:hover{background:rgba(255,255,255,.25)}
+#lb .prev{left:12px}#lb .next{right:12px}
+#lb .close{position:absolute;top:10px;right:12px;background:none;border:0;color:#fff;font-size:28px;z-index:2}
+#lb .info{width:320px;height:100%;background:#202124;overflow-y:auto;padding:18px 16px;font-size:13px}
+#lb .info .muted{color:#9aa0a6}
+#lb .info .ph{width:84px;height:84px}
+#lb .cnt{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);font-size:13px;color:#ccc}
+#md{background:rgba(32,33,36,.55)}
+#md .box{background:var(--bg);border-radius:14px;width:min(820px,94vw);max-height:90vh;overflow-y:auto;padding:16px 18px;position:relative}
+#md .box h3{margin:0 0 10px;font-weight:500;font-size:16px;display:flex;justify-content:space-between;align-items:center}
+#md .box.white{background:#fff}
+.help table{border-collapse:collapse;width:100%;font-size:13px}
+.help td,.help th{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+.help kbd{font:12px ui-monospace,Menlo,monospace;background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:0 5px}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#323232;color:#fff;padding:10px 18px;border-radius:6px;z-index:60;font-size:13px;max-width:80vw}
+#loading{position:fixed;inset:0;display:flex;flex-direction:column;gap:10px;align-items:center;justify-content:center;background:#fff;z-index:100;font-size:15px;color:var(--sub)}
+.spin{width:36px;height:36px;border:4px solid #e8eaed;border-top-color:var(--blue);border-radius:50%;animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (max-width:900px){:root{--side:260px}#lb .info{display:none}}
+</style>
+</head>
+<body>
+<div id="loading"><div class="spin"></div><div id="loadMsg">Đang giải nén dữ liệu…</div></div>
+
+<header id="top">
+  <div class="logo"><span class="pin"></span>Gắn nhãn review</div>
+  <div class="grow"></div>
+  <span id="prog"></span>
+  <div class="who" title="Mỗi người gán nhãn có bộ nhãn riêng">Người gán: <b id="annotName">—</b>
+    <button class="btn small ghost" data-act="annot">Đổi</button></div>
+  <button class="btn" data-act="import" title="Nhập lại file đã xuất (tiếp tục trên máy khác / gộp nhãn)">⬆ Nhập</button>
+  <button class="btn primary" data-act="export" title="Xuất CSV các review đã gán nhãn">⬇ Xuất CSV <span id="unsaved" class="badge" hidden></span></button>
+  <button class="btn" data-act="help" title="Hướng dẫn & phím tắt (?)">? Hướng dẫn</button>
+  <input type="file" id="fileIn" accept=".csv,.json" hidden>
+</header>
+
+<div id="app">
+  <aside id="side">
+    <div class="sh">
+      <label class="search">🔍<input id="pq" placeholder="Tìm quán…" autocomplete="off"></label>
+      <div class="sact"><span class="muted" id="selInfo"></span>
+        <span><button class="btn small ghost" data-act="selAll" title="Chọn mọi quán đang hiện trong danh sách">Chọn hết</button><button class="btn small ghost" data-act="selNone">Bỏ chọn</button></span></div>
+    </div>
+    <div id="plist"></div>
+  </aside>
+  <main id="main"><div id="mainIn">
+    <div id="head"></div>
+    <div id="bar">
+      <label class="search">🔍<input id="q" placeholder="Tìm trong nội dung review (không phân biệt dấu)…" autocomplete="off">
+        <select id="scope" class="chip" title="Phạm vi tìm kiếm"><option value="sel">Quán đã chọn</option><option value="all">Toàn bộ dữ liệu</option></select></label>
+      <div class="row" id="rowType"></div>
+      <div class="row" id="rowSig"></div>
+    </div>
+    <div id="list"></div>
+    <div id="sentinel"></div>
+  </div></main>
+</div>
+
+<div id="lb" class="ovl" hidden></div>
+<div id="md" class="ovl" hidden></div>
+<div id="toast" hidden></div>
+
+<script id="meta" type="application/json">__META__</script>
+<script id="data" type="text/plain">__DATA__</script>
+<script>
+'use strict';
+const META = JSON.parse(document.getElementById('meta').textContent);
+const FL = META.flags, NF = FL.length, HOST = META.host;
+const LABELS = [
+  {k: 'Genuine', vi: 'Thật', key: 't', cls: 'g'},
+  {k: 'Uncertain', vi: 'Chưa chắc', key: 'c', cls: 'u'},
+  {k: 'Spam', vi: 'Giả / Spam', key: 'g', cls: 's'},
+];
+const LVI = Object.fromEntries(LABELS.map(l => [l.k, l.vi]));
+const PAGE = 30;
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+const pad = n => String(n).padStart(2, '0');
+const dDate = d => new Date(d * 864e5);
+const fmtDay = d => d == null ? '' : `${pad(dDate(d).getUTCDate())}/${pad(dDate(d).getUTCMonth() + 1)}/${dDate(d).getUTCFullYear()}`;
+const isoDay = d => d == null ? '' : dDate(d).toISOString().slice(0, 10);
+const num = n => n == null ? '?' : Number(n).toLocaleString('vi-VN');
+const fold = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd');
+const img = (code, size) => HOST + code + (size ? '=' + size : '');
+const starsHTML = r => r == null ? '' : `<span class="stars">${'★'.repeat(r)}<span class="off">${'★'.repeat(5 - r)}</span></span>`;
+const hue = s => { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
+
+// ---------------------------------------------------------------- dữ liệu
+let R, PL, NR, idIdx, byPlace, byUser, byDup, byImg, hasT, hasM, placeDay, placeDayR, placeAvg, USERS, FOLD;
+const SIG = [];
+
+async function loadData() {
+  const b64 = document.getElementById('data').textContent.trim();
+  const s = atob(b64);
+  const bin = new Uint8Array(s.length);
+  for (let i = 0; i < s.length; i++) bin[i] = s.charCodeAt(i);
+  const stream = new Blob([bin]).stream().pipeThrough(new DecompressionStream('gzip'));
+  return JSON.parse(await new Response(stream).text());
+}
+
+function index(D) {
+  R = D.reviews; PL = D.places; USERS = D.users; NR = R.id.length;
+  idIdx = new Map(); byPlace = PL.k.map(() => []); byUser = new Map(); byDup = new Map(); byImg = new Map();
+  hasT = new Uint8Array(NR); hasM = new Uint8Array(NR);
+  placeDay = PL.k.map(() => new Map()); placeDayR = PL.k.map(() => new Map());
+  const lo = PL.k.map(() => Infinity), hi = PL.k.map(() => -Infinity);
+  const push = (m, k, v) => { let a = m.get(k); if (!a) m.set(k, a = []); a.push(v); };
+  for (let i = 0; i < NR; i++) {
+    const p = R.p[i];
+    idIdx.set(R.id[i], i); byPlace[p].push(i);
+    hasT[i] = R.t[i].trim() ? 1 : 0; hasM[i] = R.m[i] ? 1 : 0;
+    if (R.u[i] >= 0) push(byUser, R.u[i], i);
+    if (R.dc[i] != null) push(byDup, R.dc[i], i);
+    if (R.m[i]) R.m[i].forEach((mm, j) => { if (mm[2] >= 0) push(byImg, mm[2], [i, j]); });
+    const d = R.dy[i];
+    if (d != null) {
+      placeDay[p].set(d, (placeDay[p].get(d) || 0) + 1);
+      placeDayR[p].set(d, (placeDayR[p].get(d) || 0) + (R.r[i] || 0));
+      if (d < lo[p]) lo[p] = d; if (d > hi[p]) hi[p] = d;
+    }
+  }
+  placeAvg = PL.k.map((_, p) => byPlace[p].length / Math.max(hi[p] - lo[p], 1));
+}
+
+function labelable(i) { return hasT[i] || hasM[i]; }
+
+function signals(i) {
+  if (SIG[i]) return SIG[i];
+  const s = {}, p = R.p[i], u = R.u[i], d = R.dy[i], r = R.r[i];
+  const other = j => R.u[j] !== u || u < 0 || R.p[j] !== p;     // khác tài khoản hoặc khác quán
+  s.dup = R.dc[i] == null ? [] : byDup.get(R.dc[i]).filter(j => j !== i);
+  s.dupPlaces = new Set(s.dup.map(j => R.p[j]).filter(q => q !== p)).size;
+  const im = new Set();
+  if (R.m[i]) R.m[i].forEach(mm => { if (mm[2] >= 0) byImg.get(mm[2]).forEach(([j]) => { if (j !== i) im.add(j); }); });
+  s.img = [...im];
+  s.imgPlaces = new Set(s.img.map(j => R.p[j]).filter(q => q !== p)).size;
+  s.user = u >= 0 ? byUser.get(u).filter(j => j !== i) : [];
+  s.userPlaces = new Set(s.user.map(j => R.p[j])).size;
+  if (d != null) {
+    let n = 0, rs = 0;
+    for (let k = -3; k <= 3; k++) { n += placeDay[p].get(d + k) || 0; rs += placeDayR[p].get(d + k) || 0; }
+    s.pm3 = n; s.normal = placeAvg[p] * 7; s.winMean = n ? rs / n : null;
+    s.burst = n >= META.burst.min_count && n >= META.burst.ratio * s.normal;
+    s.burstSame = s.burst && ((r >= 4 && s.winMean >= 4) || (r <= 2 && s.winMean <= 2));
+    const ps = new Set([p]);
+    s.user.forEach(j => { if (R.dy[j] === d) ps.add(R.p[j]); });
+    s.sameDay = ps.size;
+  }
+  const ext = r === 1 || r === 5;
+  const thin1 = R.nr[i] != null && R.nr[i] <= 3 && ext && R.lg[i] !== 1;
+  const thin2 = s.user.length > 0 && (s.user.every(j => R.r[j] === 5) || s.user.every(j => R.r[j] === 1))
+    && R.nr[i] != null && R.nr[i] <= 10 && (R.na[i] || 0) <= 3;
+  const words = R.t[i].trim().split(/\s+/).filter(Boolean).length;
+  s.hint = [0, 0, words >= 8 && s.dup.some(other) ? 1 : 0, (thin1 || thin2) ? 1 : 0, (s.sameDay || 0) >= 3 ? 1 : 0,
+            s.burstSame ? 1 : 0, s.img.some(other) ? 1 : 0];
+  s.nHint = s.hint.reduce((a, b) => a + b, 0);
+  s.score = s.dup.length + s.img.length * 2 + (s.burst ? 1 : 0) + s.nHint;
+  return SIG[i] = s;
+}
+
+// ---------------------------------------------------------------- nhãn (localStorage)
+const LS = {
+  get(k, d) { try { const v = localStorage.getItem('gnr:' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem('gnr:' + k, JSON.stringify(v)); return true; } catch { return false; } },
+};
+let ANNOT = LS.get('annot', ''), L = {}, storageOK = true;
+function loadLabels() { L = ANNOT ? LS.get('labels:' + ANNOT, {}) : {}; }
+function saveLabels() {
+  if (!LS.set('labels:' + ANNOT, L) && storageOK) {
+    storageOK = false;
+    toast('⚠ Trình duyệt không cho lưu tự động — hãy bấm "Xuất CSV" thường xuyên để không mất nhãn', 8000);
+  }
+  updateProgress();
+}
+function entry(i) { return L[R.id[i]]; }
+function ensure(i) {
+  const id = R.id[i];
+  if (!L[id]) L[id] = {f: Array(NF).fill(0), l: null, n: '', t: null};
+  while (L[id].f.length < NF) L[id].f.push(0);
+  return L[id];
+}
+function ruleLabel(f) {
+  const strong = META.strong.some(k => f[FL.findIndex(x => x.key === k)]);
+  const n = f.reduce((a, b) => a + b, 0);
+  return strong || n >= 3 ? 'Spam' : n === 2 ? 'Uncertain' : 'Genuine';
+}
+function touch(e) { e.t = new Date().toISOString(); }
+
+// ---------------------------------------------------------------- trạng thái giao diện
+const UI = Object.assign({
+  sel: [], q: '', scope: 'sel', text: true, image: true, star: false, status: 'all', sig: '', sort: 'new',
+  rating: 0, period: null, advance: true, pq: '', collapsed: {},
+}, LS.get('ui', {}));
+UI.period = null; UI.rating = 0;
+const saveUI = () => LS.set('ui', {...UI, period: null, rating: 0});
+let VIEW = [], shown = 0, ACTIVE = -1, MODAL = -1, LBX = null;
+
+// ---------------------------------------------------------------- cột quán
+function placeStats(p) {
+  let lab = 0, done = 0, dup = 0, im = 0;
+  for (const i of byPlace[p]) {
+    if (labelable(i)) { lab++; const e = entry(i); if (e && e.l) done++; }
+    if (R.dc[i] != null) dup++;
+    if (R.m[i] && R.m[i].some(mm => mm[2] >= 0)) im++;
+  }
+  return {lab, done, dup, im};
+}
+function renderSide() {
+  const q = fold(UI.pq.trim());
+  const groups = new Map();
+  PL.k.forEach((_, p) => {
+    if (q && !fold(PL.n[p]).includes(q) && !fold(PL.q[p]).includes(q)) return;
+    const g = PL.q[p] || 'Khác';
+    if (!groups.has(g)) groups.set(g, []);
+    groups.get(g).push(p);
+  });
+  const sel = new Set(UI.sel);
+  let h = '';
+  for (const [g, ps] of groups) {
+    const col = UI.collapsed[g] && !q;
+    h += `<div class="pgrp" data-act="grp" data-g="${esc(g)}">${col ? '▸' : '▾'} ${esc(g)} (${ps.length})</div>`;
+    if (col) continue;
+    for (const p of ps) {
+      const st = placeStats(p), pct = st.lab ? 100 * st.done / st.lab : 0;
+      h += `<div class="pitem${sel.has(p) ? ' sel' : ''}" data-act="place" data-p="${p}">
+        <input type="checkbox" data-act="pcheck" data-p="${p}" ${sel.has(p) ? 'checked' : ''} title="Chọn thêm quán này">
+        <div class="pi"><div class="pn" title="${esc(PL.n[p])}">${esc(PL.n[p])}</div>
+        <div class="pm"><span>${PL.r[p] ?? '–'} ★ (${num(byPlace[p].length)})</span>
+          ${st.dup ? `<span title="Review có nội dung trùng">⧉ ${st.dup}</span>` : ''}
+          ${st.im ? `<span title="Review có ảnh trùng">🖼 ${st.im}</span>` : ''}
+          <span title="Đã gán / cần gán (có nội dung hoặc ảnh)">✓ ${st.done}/${st.lab}</span></div>
+        <div class="pbar"><i style="width:${pct.toFixed(1)}%"></i></div></div></div>`;
+    }
+  }
+  $('#plist').innerHTML = h || '<div class="empty" style="margin:12px">Không có quán phù hợp</div>';
+  $('#selInfo').textContent = UI.sel.length ? `Đã chọn ${UI.sel.length} quán` : 'Chưa chọn quán';
+}
+
+// ---------------------------------------------------------------- đầu trang (tổng quan)
+function baseSet() {
+  if (UI.scope === 'all' && UI.q.trim()) { const a = []; for (let i = 0; i < NR; i++) a.push(i); return a; }
+  return UI.sel.flatMap(p => byPlace[p]);
+}
+function renderHead() {
+  const el = $('#head');
+  if (!UI.sel.length) { el.innerHTML = ''; return; }
+  const set = UI.sel.flatMap(p => byPlace[p]);
+  const one = UI.sel.length === 1 ? UI.sel[0] : -1;
+  const hist = [0, 0, 0, 0, 0, 0];
+  let nt = 0, nm = 0, nd = 0, ni = 0, lab = 0, done = 0, rs = 0, rn = 0;
+  for (const i of set) {
+    if (R.r[i]) { hist[R.r[i]]++; rs += R.r[i]; rn++; }
+    nt += hasT[i]; nm += hasM[i];
+    if (R.dc[i] != null) nd++;
+    if (R.m[i] && R.m[i].some(mm => mm[2] >= 0)) ni++;
+    if (labelable(i)) { lab++; const e = entry(i); if (e && e.l) done++; }
+  }
+  const mx = Math.max(...hist.slice(1), 1);
+  const avg = one >= 0 && PL.r[one] != null ? PL.r[one] : (rn ? rs / rn : 0);
+  const title = one >= 0
+    ? `<h1>${esc(PL.n[one])}</h1><div class="cat">${esc(PL.q[one])}${PL.u[one] ? ` · <a href="${esc(PL.u[one])}" target="_blank" rel="noopener">Mở trên Google Maps ↗</a>` : ''}</div>`
+    : `<h1>${UI.sel.length} quán đã chọn</h1><div class="cat">${UI.sel.slice(0, 6).map(p => esc(PL.n[p])).join(' · ')}${UI.sel.length > 6 ? ' …' : ''}</div>`;
+  el.innerHTML = `<div class="phead">${title}
+    <div class="ov">
+      <div class="big"><div class="n">${avg ? avg.toFixed(1).replace('.', ',') : '–'}</div>${starsHTML(Math.round(avg))}
+        <div class="muted" style="font-size:12px">${num(set.length)} review đã thu thập${one >= 0 && PL.c[one] ? `<br>Google báo ${num(PL.c[one])}` : ''}</div></div>
+      <div class="hist">${[5, 4, 3, 2, 1].map(r => `<div class="hrow${UI.rating === r ? ' on' : ''}" data-act="rating" data-r="${r}" title="Lọc review ${r}★">
+        <span>${r}</span><div class="hb"><i style="width:${(100 * hist[r] / mx).toFixed(1)}%"></i></div><span style="width:44px;text-align:right">${num(hist[r])}</span></div>`).join('')}</div>
+    </div>
+    <div class="stats">
+      <span class="stat">💬 <b>${set.length ? Math.round(100 * nt / set.length) : 0}%</b> có nội dung</span>
+      <span class="stat">📷 <b>${set.length ? Math.round(100 * nm / set.length) : 0}%</b> có ảnh/video</span>
+      <span class="stat">⧉ <b>${nd}</b> review trùng nội dung</span>
+      ${META.has_img_hash ? `<span class="stat">🖼 <b>${ni}</b> review trùng ảnh</span>` : ''}
+      <span class="stat">✓ Đã gán <b>${done}/${lab}</b> review cần gán</span>
+    </div>
+    ${timelineHTML(set)}</div>`;
+}
+function timelineHTML(set) {
+  const mon = d => { const x = dDate(d); return x.getUTCFullYear() * 12 + x.getUTCMonth(); };
+  const cnt = new Map(), sp = new Map();
+  let lo = Infinity, hi = -Infinity;
+  for (const i of set) {
+    if (R.dy[i] == null) continue;
+    const m = mon(R.dy[i]);
+    cnt.set(m, (cnt.get(m) || 0) + 1);
+    const e = entry(i); if (e && e.l === 'Spam') sp.set(m, (sp.get(m) || 0) + 1);
+    if (m < lo) lo = m; if (m > hi) hi = m;
+  }
+  if (!cnt.size) return '';
+  if (hi - lo > 120) lo = hi - 120;                       // tối đa 10 năm gần nhất
+  const n = hi - lo + 1, W = 800, H = 70, bw = W / n, mx = Math.max(...cnt.values());
+  let bars = '', labels = '';
+  for (let m = lo; m <= hi; m++) {
+    const c = cnt.get(m) || 0, x = (m - lo) * bw, h = c ? Math.max(2, H * c / mx) : 0;
+    const y0 = Date.UTC(Math.floor(m / 12), m % 12, 1) / 864e5, y1 = Date.UTC(Math.floor((m + 1) / 12), (m + 1) % 12, 1) / 864e5 - 1;
+    const on = UI.period && UI.period.from === y0 && UI.period.to === y1 ? ' on' : '';
+    bars += `<rect class="b${on}" x="${x + 0.5}" y="${H - h}" width="${Math.max(bw - 1, 1)}" height="${h || 0}" data-act="period" data-from="${y0}" data-to="${y1}" data-lbl="Tháng ${pad(m % 12 + 1)}/${Math.floor(m / 12)}"><title>${pad(m % 12 + 1)}/${Math.floor(m / 12)}: ${c} review${sp.get(m) ? `, ${sp.get(m)} đã gán Spam` : ''}</title></rect>`;
+    if (sp.get(m)) bars += `<rect class="sp" x="${x + 0.5}" y="${H - H * sp.get(m) / mx}" width="${Math.max(bw - 1, 1)}" height="${H * sp.get(m) / mx}"></rect>`;
+    if (m % 12 === 0) labels += `<text x="${x + 2}" y="${H + 12}">${Math.floor(m / 12)}</text>`;
+  }
+  return `<div class="tl"><div class="cap"><span>Số review theo tháng (bấm cột để lọc; đỏ = đã gán Spam)</span><span>cao nhất ${mx}/tháng</span></div>
+    <svg viewBox="0 0 ${W} ${H + 14}" preserveAspectRatio="none">${bars}${labels}</svg></div>`;
+}
+
+// ---------------------------------------------------------------- thanh lọc
+const SIGS = [
+  ['', 'Tất cả'], ['any', 'Có tín hiệu'], ['dup', '⧉ Trùng nội dung'], ['img', '🖼 Trùng ảnh'],
+  ['user', '👤 TK có review khác'], ['burst', '📈 Trong đợt dồn'], ['hint', '💡 Có gợi ý cờ'],
+];
+const STATUS = [['all', 'Tất cả'], ['todo', 'Chưa gán'], ['done', 'Đã gán'], ['Spam', 'Spam'], ['Uncertain', 'Chưa chắc'], ['Genuine', 'Thật']];
+const SORTS = [['new', 'Mới nhất'], ['old', 'Cũ nhất'], ['hi', 'Sao cao → thấp'], ['lo', 'Sao thấp → cao'], ['sig', 'Nhiều tín hiệu nhất'], ['long', 'Nội dung dài nhất']];
+function renderBar() {
+  const chip = (act, val, on, txt, title = '') => `<button class="chip${on ? ' on' : ''}" data-act="${act}" data-v="${val}" title="${esc(title)}">${txt}</button>`;
+  let a = chip('type', 'text', UI.text, '💬 Có nội dung') + chip('type', 'image', UI.image, '📷 Có ảnh')
+    + chip('type', 'star', UI.star, '★ Chỉ chấm sao', 'Review không có chữ và không có ảnh — không cần gán, mặc định ẩn')
+    + `<span class="muted" style="margin:0 4px">|</span>`
+    + STATUS.map(([v, t]) => chip('status', v, UI.status === v, t)).join('');
+  if (UI.rating) a += chip('clrRating', '', true, `${UI.rating}★ <span class="x">✕</span>`);
+  if (UI.period) a += chip('clrPeriod', '', true, `${esc(UI.period.lbl)} <span class="x">✕</span>`);
+  $('#rowType').innerHTML = a;
+  $('#rowSig').innerHTML = SIGS.filter(([v]) => v !== 'img' || META.has_img_hash).map(([v, t]) => chip('sig', v, UI.sig === v, t)).join('')
+    + `<select class="chip" id="sort" title="Sắp xếp">${SORTS.map(([v, t]) => `<option value="${v}"${UI.sort === v ? ' selected' : ''}>${t}</option>`).join('')}</select>
+       <label class="chip" title="Sau khi gán nhãn bằng phím tắt, tự chuyển sang review kế tiếp"><input type="checkbox" id="adv" ${UI.advance ? 'checked' : ''}> Tự chuyển</label>
+       <span id="count"></span>`;
+}
+
+// ---------------------------------------------------------------- danh sách review
+function computeView() {
+  const base = baseSet();
+  const q = UI.q.trim(), fq = fold(q);
+  if (fq && !FOLD) FOLD = R.t.map(t => fold(t));
+  const out = [];
+  for (const i of base) {
+    const t = hasT[i], m = hasM[i];
+    if (!((t && UI.text) || (m && UI.image) || (!t && !m && UI.star))) continue;
+    if (UI.rating && R.r[i] !== UI.rating) continue;
+    if (UI.period && (R.dy[i] == null || R.dy[i] < UI.period.from || R.dy[i] > UI.period.to)) continue;
+    if (UI.period && UI.period.p != null && R.p[i] !== UI.period.p) continue;
+    const e = entry(i), l = e && e.l;
+    if (UI.status === 'todo' && l) continue;
+    if (UI.status === 'done' && !l) continue;
+    if (['Spam', 'Uncertain', 'Genuine'].includes(UI.status) && l !== UI.status) continue;
+    if (fq && !FOLD[i].includes(fq)) continue;
+    if (UI.sig) {
+      const s = signals(i);
+      const ok = {any: s.dup.length || s.img.length || s.burst || s.nHint, dup: s.dup.length, img: s.img.length,
+                  user: s.user.length, burst: s.burst, hint: s.nHint}[UI.sig];
+      if (!ok) continue;
+    }
+    out.push(i);
+  }
+  const dy = i => R.dy[i] ?? -1e9;
+  const cmp = {
+    new: (a, b) => dy(b) - dy(a), old: (a, b) => dy(a) - dy(b),
+    hi: (a, b) => (R.r[b] || 0) - (R.r[a] || 0) || dy(b) - dy(a), lo: (a, b) => (R.r[a] || 0) - (R.r[b] || 0) || dy(b) - dy(a),
+    sig: (a, b) => signals(b).score - signals(a).score || dy(b) - dy(a), long: (a, b) => R.t[b].length - R.t[a].length,
+  }[UI.sort];
+  out.sort(cmp);
+  return out;
+}
+function applyView(keepScroll = false) {
+  saveUI();
+  renderBar();
+  renderHead();
+  VIEW = computeView();
+  shown = 0;
+  const list = $('#list');
+  list.innerHTML = '';
+  if (!UI.sel.length && !(UI.scope === 'all' && UI.q.trim())) {
+    list.innerHTML = `<div class="empty"><h2>Chọn quán để bắt đầu gán nhãn</h2>
+      Bấm tên quán ở cột trái để xem một quán, hoặc tick ô vuông để chọn nhiều quán cùng lúc.<br>
+      Có thể tìm nội dung trong <b>toàn bộ dữ liệu</b> bằng ô tìm kiếm phía trên (chọn phạm vi "Toàn bộ dữ liệu").<br><br>
+      Bấm <b>❔</b> hoặc phím <b>?</b> để xem hướng dẫn và phím tắt.</div>`;
+  } else if (!VIEW.length) {
+    list.innerHTML = `<div class="empty"><h2>Không có review phù hợp bộ lọc</h2>Thử bỏ bớt bộ lọc ở trên.</div>`;
+  }
+  $('#count').textContent = `${num(VIEW.length)} review`;
+  if (!keepScroll) $('#main').scrollTop = 0;
+  ACTIVE = -1;
+  renderMore();
+}
+function renderMore() {
+  if (shown >= VIEW.length) return;
+  const html = VIEW.slice(shown, shown + PAGE).map(i => cardHTML(i)).join('');
+  shown = Math.min(shown + PAGE, VIEW.length);
+  $('#list').insertAdjacentHTML('beforeend', html);
+}
+
+function highlight(text) {
+  const q = UI.q.trim();
+  let h = esc(text);
+  if (!q) return h;
+  const re = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+'), 'gi');
+  return h.replace(re, m => `<mark>${m}</mark>`);
+}
+function userName(i) { return R.u[i] >= 0 ? `Người dùng ${USERS[R.u[i]].slice(0, 6)}` : 'Người dùng ẩn danh'; }
+function avatar(i) {
+  const k = R.u[i] >= 0 ? USERS[R.u[i]] : R.id[i];
+  return `<div class="av" style="background:hsl(${hue(k)},45%,48%)">${esc(k[0].toUpperCase())}</div>`;
+}
+function photosHTML(i, size = 96) {
+  if (!R.m[i]) return '';
+  return `<div class="phs">${R.m[i].map((mm, j) => {
+    const g = mm[2], n = g >= 0 ? new Set(byImg.get(g).map(([k]) => k).filter(k => k !== i)).size : 0;
+    return `<button class="ph${n ? ' dup' : ''}" style="width:${size}px;height:${size}px" data-act="lb" data-i="${i}" data-j="${j}" title="${n ? `Ảnh này giống ảnh của ${n} review khác` : 'Xem ảnh lớn'}">
+      <img loading="lazy" src="${img(mm[0], 'w240-h240-k-no')}" alt="">${mm[1] ? '<span class="vid">▶</span>' : ''}${n ? `<span class="dn">trùng ${n}</span>` : ''}</button>`;
+  }).join('')}</div>`;
+}
+function ownerHTML(o) {
+  const k = o.indexOf('\n'), when = k < 0 ? '' : o.slice(0, k), body = k < 0 ? o : o.slice(k + 1);
+  return `<div class="own"><b>Phản hồi của chủ sở hữu</b>${when ? ` <span class="muted">· ${esc(when)}</span>` : ''}<div class="ct clamp" style="margin-top:2px">${esc(body)}</div></div>`;
+}
+function sigHTML(i) {
+  const s = signals(i), out = [];
+  if (s.dup.length) out.push(`<button class="sig r" data-act="ev" data-k="dup" data-i="${i}">⧉ Nội dung trùng ${s.dup.length} review${s.dupPlaces ? ` · ${s.dupPlaces} quán khác` : ''} ▾</button>`);
+  if (s.img.length) out.push(`<button class="sig r" data-act="ev" data-k="img" data-i="${i}">🖼 Ảnh trùng ${s.img.length} review${s.imgPlaces ? ` · ${s.imgPlaces} quán khác` : ''} ▾</button>`);
+  if (s.user.length) out.push(`<button class="sig ${s.sameDay >= 3 ? 'o' : 'b'}" data-act="ev" data-k="user" data-i="${i}">👤 Tài khoản có ${s.user.length} review khác${s.sameDay >= 2 ? ` · ${s.sameDay} quán cùng ngày` : ''} ▾</button>`);
+  if (s.burst) out.push(`<button class="sig o" data-act="ev" data-k="burst" data-i="${i}">📈 Đợt dồn: ${s.pm3} review/7 ngày (thường ≈ ${s.normal.toFixed(1).replace('.', ',')}) ▾</button>`);
+  if (s.hint[3]) out.push(`<span class="sig o" title="Tài khoản ≤ 3 review / chấm cực đoan / không phải Local Guide">🪶 Tài khoản mỏng</span>`);
+  return out.length ? `<div class="sigs">${out.join('')}</div>` : '';
+}
+function cardHTML(i, modal = false) {
+  const e = entry(i), l = e && e.l, multi = modal || UI.sel.length !== 1 || UI.scope === 'all';
+  const txt = R.t[i], long = txt.length > 420 || (txt.match(/\n/g) || []).length > 5;
+  const meta = [R.lg[i] === 1 ? '<span class="lgb">Local Guide</span>' : '', R.nr[i] != null ? `${num(R.nr[i])} bài đánh giá` : '',
+                R.na[i] ? `${num(R.na[i])} ảnh` : ''].filter(Boolean).join(' · ');
+  return `<article class="card${l ? ' lab-' + l : ''}${i === ACTIVE ? ' active' : ''}" data-card="${i}" ${modal ? 'data-modal="1"' : `id="c${i}"`}>
+    <div class="ch">${avatar(i)}<div class="w"><div class="nm">${userName(i)}</div><div class="mt">${meta || '&nbsp;'}</div></div>
+      ${multi ? `<span class="ptag" title="${esc(PL.n[R.p[i]])}">📍 ${esc(PL.n[R.p[i]])}</span>` : ''}
+      <span class="lbslot">${l ? `<span class="lb ${l}">${LVI[l]}</span>` : ''}</span></div>
+    <div class="cr">${starsHTML(R.r[i])}<span>${esc(R.dt[i])}${R.dy[i] != null ? ` · ${fmtDay(R.dy[i])}` : ''}</span>${R.ed[i] ? '<span>· Đã chỉnh sửa</span>' : ''}</div>
+    ${txt.trim() ? `<div class="ct${long ? ' clamp' : ''}">${highlight(txt)}</div>${long ? '<button class="more" data-act="more">Xem thêm</button>' : ''}${R.tr[i] ? '<div class="muted" style="font-size:12px">(nội dung có thể bị cắt khi thu thập)</div>' : ''}`
+      : `<div class="nott">${hasM[i] ? 'Không có nội dung — chỉ có ảnh/video' : 'Chỉ chấm sao, không có nội dung'}</div>`}
+    ${photosHTML(i)}
+    ${R.ow[i] ? ownerHTML(R.ow[i]) : ''}
+    ${sigHTML(i)}
+    <div class="evslot"></div>
+    <div class="lab">${labHTML(i)}</div>
+  </article>`;
+}
+function labHTML(i) {
+  const e = entry(i), f = e ? e.f : Array(NF).fill(0), s = signals(i);
+  const rule = ruleLabel(f), l = e && e.l;
+  const flags = FL.map((x, k) => {
+    if (k === 6 && !META.has_img_hash && !f[k]) return '';
+    return `<button class="fl${f[k] ? ' on' : ''}${!f[k] && s.hint[k] ? ' hint' : ''}" data-act="flag" data-i="${i}" data-k="${k}" title="${esc(x.desc)}${s.hint[k] ? '\n\n💡 Hệ thống gợi ý cờ này từ dữ liệu — hãy kiểm tra lại' : ''}"><kbd>${k + 1}</kbd>${esc(x.short)}</button>`;
+  }).join('');
+  return `<div class="flags">${flags}${s.nHint && s.hint.some((h, k) => h && !f[k]) ? `<button class="fl" data-act="acceptHints" data-i="${i}" title="Bật mọi cờ được gợi ý (phím A)">💡 Nhận gợi ý</button>` : ''}</div>
+    <div class="lrow">${LABELS.map(x => `<button class="lbtn ${x.cls}${l === x.k ? ' on' : ''}" data-act="label" data-i="${i}" data-l="${x.k}"><kbd>${x.key.toUpperCase()}</kbd>${x.vi}</button>`).join('')}
+      <span class="rule">Theo luật: <b>${LVI[rule]}</b></span>
+      ${l && l !== rule && !(e.n || '').trim() ? '<span class="warn">≠ luật → ghi lý do vào ghi chú</span>' : ''}
+      <input class="note" data-i="${i}" placeholder="Ghi chú (phím N)…" value="${esc(e ? e.n : '')}"></div>`;
+}
+function refreshCard(i) {
+  for (const c of $$(`[data-card="${i}"]`)) {
+    const e = entry(i), l = e && e.l;
+    c.classList.remove('lab-Genuine', 'lab-Uncertain', 'lab-Spam');
+    if (l) c.classList.add('lab-' + l);
+    $('.lbslot', c).innerHTML = l ? `<span class="lb ${l}">${LVI[l]}</span>` : '';
+    const focused = document.activeElement && document.activeElement.classList.contains('note') && c.contains(document.activeElement);
+    if (!focused) $('.lab', c).innerHTML = labHTML(i);
+  }
+  for (const m of $$(`.mini[data-i="${i}"] .lbslot`)) { const e = entry(i); m.innerHTML = e && e.l ? `<span class="lb ${e.l}">${LVI[e.l]}</span>` : ''; }
+}
+
+// ---------------------------------------------------------------- bằng chứng (mở rộng)
+function miniHTML(j, i, extra = '') {
+  const e = entry(j);
+  const tags = [];
+  if (R.u[j] >= 0 && R.u[j] === R.u[i]) tags.push('<span class="tag">cùng tài khoản</span>');
+  if (R.p[j] === R.p[i]) tags.push('<span class="tag">cùng quán</span>'); else tags.push('<span class="tag hot">quán khác</span>');
+  if (R.dy[j] != null && R.dy[j] === R.dy[i]) tags.push('<span class="tag hot">cùng ngày</span>');
+  return `<div class="mini" data-i="${j}"><div class="mh"><b>📍 ${esc(PL.n[R.p[j]])}</b>${starsHTML(R.r[j])}<span>${fmtDay(R.dy[j])}</span><span>${userName(j)}</span>${tags.join('')}
+      <span class="lbslot">${e && e.l ? `<span class="lb ${e.l}">${LVI[e.l]}</span>` : ''}</span>
+      <button class="btn small" data-act="open" data-i="${j}" style="margin-left:auto">Mở / gán nhãn</button></div>
+    ${R.t[j].trim() ? `<div class="mx">${esc(R.t[j].length > 500 ? R.t[j].slice(0, 500) + '…' : R.t[j])}</div>` : '<div class="nott" style="font-size:12.5px">Không có nội dung</div>'}${extra}</div>`;
+}
+function evHTML(i, k) {
+  const s = signals(i), byDay = (a, b) => (R.dy[a] ?? 0) - (R.dy[b] ?? 0);
+  if (k === 'dup') {
+    const e = entry(i), todo = s.dup.filter(j => !(entry(j) && entry(j).l)).length;
+    return `<div class="ev"><h4>Các review có nội dung gần trùng (M1a) — so sánh để quyết cờ "Trùng nội dung"</h4>
+      ${e && e.l && todo ? `<button class="btn small" data-act="propagate" data-i="${i}">Gán nhãn "${LVI[e.l]}" + cờ hiện tại cho ${todo} review trùng chưa gán</button>` : ''}
+      ${s.dup.slice().sort(byDay).map(j => miniHTML(j, i)).join('')}</div>`;
+  }
+  if (k === 'img') {
+    const pairs = [];
+    (R.m[i] || []).forEach((mm, a) => {
+      if (mm[2] < 0) return;
+      const others = byImg.get(mm[2]).filter(([j]) => j !== i);
+      if (!others.length) return;
+      pairs.push(`<div class="pair"><button class="ph" data-act="lb" data-i="${i}" data-j="${a}"><img loading="lazy" src="${img(mm[0], 'w160-h160-k-no')}"></button> = ${others.slice(0, 6).map(([j, b]) =>
+        `<button class="ph" data-act="lb" data-i="${j}" data-j="${b}" title="${esc(PL.n[R.p[j]])}"><img loading="lazy" src="${img(R.m[j][b][0], 'w160-h160-k-no')}"></button>`).join('')}${others.length > 6 ? ` +${others.length - 6}` : ''}</div>`);
+    });
+    return `<div class="ev"><h4>Ảnh giống nhau giữa các review (so khớp nội dung ảnh) — kiểm tra bằng mắt trước khi gắn cờ "Trùng ảnh"</h4>
+      <div class="pairs">${pairs.join('')}</div>${s.img.slice().sort(byDay).map(j => miniHTML(j, i, photosHTML(j, 64))).join('')}</div>`;
+  }
+  if (k === 'user') {
+    return `<div class="ev"><h4>Các review khác của cùng tài khoản trong dữ liệu (${s.userPlaces} quán) — xét cờ "TK mỏng" và "Nhiều quán cùng lúc"</h4>
+      ${s.user.slice().sort(byDay).map(j => miniHTML(j, i)).join('')}</div>`;
+  }
+  if (k === 'burst') {
+    const d = R.dy[i], p = R.p[i];
+    const cells = [];
+    for (let x = -10; x <= 10; x++) cells.push([x, placeDay[p].get(d + x) || 0]);
+    const mx = Math.max(...cells.map(c => c[1]), 1);
+    return `<div class="ev"><h4>Đợt dồn review quanh ngày ${fmtDay(d)}</h4>
+      <div>Quán có <b>${s.pm3}</b> review trong ±3 ngày; mức bình thường ≈ <b>${s.normal.toFixed(1).replace('.', ',')}</b> review/7 ngày;
+        điểm trung bình trong đợt <b>${s.winMean != null ? s.winMean.toFixed(1).replace('.', ',') : '–'}★</b>${s.burstSame ? ' — review này <b>cùng chiều</b> với đợt' : ' — review này không cùng chiều với đợt'}.</div>
+      <svg viewBox="0 0 420 60" style="width:100%;max-width:520px;height:60px;margin-top:6px">${cells.map(([x, c], n) =>
+        `<rect x="${n * 20 + 1}" y="${50 - 46 * c / mx}" width="18" height="${46 * c / mx}" fill="${Math.abs(x) <= 3 ? '#f29900' : '#aecbfa'}"><title>${fmtDay(d + x)}: ${c}</title></rect>`).join('')}
+        <text x="${10 * 20 + 2}" y="59" font-size="9" fill="#70757a">ngày này</text></svg>
+      <button class="btn small" data-act="burstView" data-i="${i}">Xem mọi review của quán trong ±3 ngày</button></div>`;
+  }
+  return '';
+}
+
+// ---------------------------------------------------------------- hành động gán nhãn
+function setActive(i, scroll = true) {
+  if (MODAL >= 0) return;
+  $$('.card.active').forEach(c => c.classList.remove('active'));
+  ACTIVE = i;
+  const c = $('#c' + i);
+  if (c) { c.classList.add('active'); if (scroll) c.scrollIntoView({block: 'nearest', behavior: 'smooth'}); }
+}
+function target() { return MODAL >= 0 ? MODAL : ACTIVE; }
+function toggleFlag(i, k) { const e = ensure(i); e.f[k] = e.f[k] ? 0 : 1; touch(e); saveLabels(); refreshCard(i); }
+function setLabel(i, l, viaKey = false) {
+  const e = ensure(i);
+  e.l = e.l === l && !viaKey ? null : l; touch(e); saveLabels(); refreshCard(i);
+  if (viaKey && UI.advance && MODAL < 0) move(1);
+  renderSideSoon();
+}
+function acceptHints(i) { const e = ensure(i), s = signals(i); s.hint.forEach((h, k) => { if (h) e.f[k] = 1; }); touch(e); saveLabels(); refreshCard(i); }
+function move(d) {
+  if (MODAL >= 0) return;
+  let pos = VIEW.indexOf(ACTIVE);
+  pos = pos < 0 ? 0 : Math.max(0, Math.min(VIEW.length - 1, pos + d));
+  while (pos >= shown && shown < VIEW.length) renderMore();
+  if (VIEW.length) setActive(VIEW[pos]);
+}
+let sideTimer = null;
+function renderSideSoon() { clearTimeout(sideTimer); sideTimer = setTimeout(() => { const st = $('#plist').scrollTop; renderSide(); $('#plist').scrollTop = st; }, 400); }
+
+function propagate(i) {
+  const src = entry(i); if (!src || !src.l) return;
+  const f3 = FL.findIndex(x => x.key === 'f3_trung_noi_dung');
+  let n = 0;
+  for (const j of signals(i).dup) {
+    const e = entry(j); if (e && e.l) continue;
+    const t = ensure(j); t.f = src.f.slice(); t.f[f3] = 1; t.l = src.l;
+    t.n = (t.n ? t.n + ' | ' : '') + 'gán theo nhóm trùng nội dung'; touch(t); n++; refreshCard(j);
+  }
+  saveLabels(); renderSideSoon();
+  toast(`Đã gán ${n} review trùng nội dung`);
+  const c = $(`[data-card="${i}"] .evslot`); if (c && c.dataset.k === 'dup') c.innerHTML = evHTML(i, 'dup');
+}
+
+// ---------------------------------------------------------------- xem ảnh lớn
+function openLB(i, j) { LBX = {i, j}; renderLB(); }
+function renderLB() {
+  const el = $('#lb');
+  if (!LBX) { el.hidden = true; el.innerHTML = ''; return; }
+  const {i, j} = LBX, mm = R.m[i][j], n = R.m[i].length, g = mm[2];
+  const others = g >= 0 ? byImg.get(g).filter(([k]) => k !== i) : [];
+  el.innerHTML = `<div class="stage">
+      ${mm[1] ? `<video src="${img(mm[1])}" poster="${img(mm[0], 'w1200-h900-k-no')}" controls autoplay></video>` : `<img src="${img(mm[0], 'w1600-h1200-k-no')}" alt="">`}
+      ${n > 1 ? '<button class="nav prev" data-act="lbPrev">‹</button><button class="nav next" data-act="lbNext">›</button>' : ''}
+      <div class="cnt">${j + 1} / ${n}${mm[1] ? ' · video' : ''}</div></div>
+    <div class="info"><button class="close" data-act="lbClose" title="Đóng (Esc)">✕</button>
+      <div style="font-weight:500;font-size:15px;margin-right:30px">📍 ${esc(PL.n[R.p[i]])}</div>
+      <div class="muted" style="margin:4px 0 8px">${userName(i)} · ${starsHTML(R.r[i])} · ${fmtDay(R.dy[i])}</div>
+      <div style="white-space:pre-wrap">${esc(R.t[i].slice(0, 600))}${R.t[i].length > 600 ? '…' : ''}</div>
+      <div style="margin-top:10px"><a href="${img(mm[0], 's0')}" target="_blank" rel="noopener">Mở ảnh gốc ↗</a></div>
+      ${others.length ? `<h4 style="margin:16px 0 6px;color:#f28b82">Ảnh này giống ảnh của ${new Set(others.map(o => o[0])).size} review khác</h4>
+        ${others.map(([k, b]) => `<div style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
+          <button class="ph" data-act="lbJump" data-i="${k}" data-j="${b}"><img src="${img(R.m[k][b][0], 'w160-h160-k-no')}"></button>
+          <div><div>${esc(PL.n[R.p[k]])}</div><div class="muted">${starsHTML(R.r[k])} · ${fmtDay(R.dy[k])}</div>
+          <button class="btn small" data-act="open" data-i="${k}" style="margin-top:4px">Mở review</button></div></div>`).join('')}` : ''}
+    </div>`;
+  el.hidden = false;
+}
+
+// ---------------------------------------------------------------- hộp thoại
+function openReview(j) {
+  LBX = null; renderLB();
+  MODAL = j;
+  const md = $('#md');
+  md.innerHTML = `<div class="box"><h3><span>Review ở ${esc(PL.n[R.p[j]])}</span><button class="btn small" data-act="mdClose">Đóng (Esc)</button></h3>${cardHTML(j, true)}</div>`;
+  md.hidden = false;
+}
+function closeModal() {
+  const was = MODAL;
+  MODAL = -1; $('#md').hidden = true; $('#md').innerHTML = '';
+  if (was >= 0) refreshCard(was);
+}
+function showBox(html, white = true) {
+  MODAL = -2;
+  const md = $('#md');
+  md.innerHTML = `<div class="box${white ? ' white' : ''}">${html}</div>`;
+  md.hidden = false;
+}
+function helpHTML() {
+  return `<div class="help"><h3><span>Hướng dẫn gán nhãn</span><button class="btn small" data-act="mdClose">Đóng (Esc)</button></h3>
+  <p><b>Cần gán:</b> review có nội dung hoặc có ảnh/video. Review <b>chỉ chấm sao</b> không có bằng chứng để đánh giá → mặc định ẩn, không cần gán
+  (bật chip "★ Chỉ chấm sao" nếu muốn xem tổng quan). Câu hỏi: <i>review này có phản ánh trải nghiệm thật, tự nguyện của khách không?</i>
+  Đánh giá từng cờ trước, kết luận sau; thiếu thông tin thì để cờ tắt. Chi tiết: <code>docs/huong_dan_gan_nhan.md</code>.</p>
+  <table><tr><th>Phím</th><th>Cờ</th><th>Gắn khi</th></tr>
+  ${FL.map((x, k) => `<tr><td><kbd>${k + 1}</kbd></td><td><b>${esc(x.short)}</b></td><td>${esc(x.desc)}</td></tr>`).join('')}</table>
+  <p><b>Luật gợi ý kết luận:</b> có cờ ${META.strong.map(k => '"' + FL.find(x => x.key === k).short + '"').join(', ')} hoặc ≥ 3 cờ → <b>Giả/Spam</b>;
+  2 cờ → <b>Chưa chắc</b>; 0–1 cờ → <b>Thật</b> (= không thấy dấu hiệu). Được kết luận khác luật nhưng phải ghi lý do vào ghi chú.</p>
+  <p>Cờ có <span class="fl hint" style="display:inline-block">viền vàng nét đứt</span> là <b>gợi ý</b> hệ thống tính từ dữ liệu (trùng nội dung, trùng ảnh,
+  tài khoản, đợt dồn) — hãy mở phần bằng chứng để kiểm tra, không bật mù quáng.</p>
+  <table><tr><th>Phím tắt</th><th></th></tr>
+  <tr><td><kbd>J</kbd> / <kbd>K</kbd></td><td>Review kế tiếp / trước</td></tr>
+  <tr><td><kbd>1</kbd>…<kbd>7</kbd></td><td>Bật/tắt cờ</td></tr>
+  <tr><td><kbd>T</kbd> <kbd>C</kbd> <kbd>G</kbd></td><td>Kết luận Thật / Chưa chắc / Giả (Spam) — tự chuyển sang review kế tiếp nếu bật "Tự chuyển"</td></tr>
+  <tr><td><kbd>A</kbd></td><td>Nhận mọi cờ gợi ý</td></tr>
+  <tr><td><kbd>X</kbd></td><td>Xóa nhãn của review</td></tr>
+  <tr><td><kbd>N</kbd></td><td>Viết ghi chú (Enter/Esc để thoát ô ghi chú)</td></tr>
+  <tr><td><kbd>O</kbd></td><td>Xem ảnh lớn (← → để chuyển ảnh)</td></tr>
+  <tr><td><kbd>E</kbd></td><td>Mở/đóng bằng chứng đầu tiên</td></tr>
+  <tr><td><kbd>/</kbd></td><td>Tìm trong nội dung</td></tr>
+  <tr><td><kbd>Esc</kbd></td><td>Đóng cửa sổ</td></tr></table>
+  <p><b>Lưu & xuất:</b> nhãn tự lưu trong trình duyệt này (theo tên người gán). Bấm <b>⬇ Xuất CSV</b> để lấy file nộp/đánh giá;
+  <b>⬆ Nhập</b> để nạp lại file đã xuất (chuyển máy, gộp nhãn). Ảnh tải trực tiếp từ Google nên cần có mạng.</p>
+  <p class="muted">Dữ liệu tạo lúc ${esc(META.built)} · ${num(NR)} review · ${PL.k.length} quán${META.has_img_hash ? '' : ' · chưa có dữ liệu so khớp ảnh'}</p></div>`;
+}
+function askAnnot(first) {
+  showBox(`<h3><span>${first ? 'Chào bạn! ' : ''}Tên hoặc mã người gán nhãn</span></h3>
+    <p class="muted">Mỗi người gán có bộ nhãn riêng; tên được ghi vào file xuất (ví dụ: <b>A</b>, <b>B</b>, <b>Yen</b>).</p>
+    <form id="annotForm" style="display:flex;gap:8px"><input id="annotIn" class="note" value="${esc(ANNOT)}" required autofocus placeholder="Ví dụ: A">
+    <button class="btn primary">Bắt đầu</button></form>
+    ${Object.keys(localStorage).filter(k => k.startsWith('gnr:labels:')).length ? `<p class="muted" style="margin-top:12px">Đã có nhãn trong trình duyệt của: ${
+      Object.keys(localStorage).filter(k => k.startsWith('gnr:labels:')).map(k => `<b>${esc(k.slice(11))}</b>`).join(', ')}</p>` : ''}`);
+  setTimeout(() => $('#annotIn') && $('#annotIn').focus(), 30);
+  $('#annotForm').onsubmit = ev => {
+    ev.preventDefault();
+    const v = $('#annotIn').value.trim().replace(/[^\p{L}\p{N}_\- ]/gu, '');
+    if (!v) return;
+    ANNOT = v; LS.set('annot', v); loadLabels();
+    $('#annotName').textContent = v;
+    closeModal(); MODAL = -1;
+    renderSide(); applyView(); updateProgress();
+  };
+}
+
+// ---------------------------------------------------------------- tiến độ / xuất / nhập
+function updateProgress() {
+  let n = 0, s = 0, u = 0, newer = 0;
+  const last = LS.get('exported:' + ANNOT, '');
+  for (const id in L) {
+    const e = L[id]; if (!e.l) continue;
+    n++; if (e.l === 'Spam') s++; if (e.l === 'Uncertain') u++;
+    if (!last || (e.t && e.t > last)) newer++;
+  }
+  $('#prog').textContent = `Đã gán ${num(n)} review · ${s} Spam · ${u} Chưa chắc`;
+  const b = $('#unsaved');
+  b.hidden = !newer; b.textContent = newer; b.title = `${newer} nhãn chưa được xuất ra file`;
+}
+const COLS = ['annotator', 'review_id', 'place_key', 'place_name', 'rating', 'review_day', 'has_text', 'has_image', 'n_media',
+  ...FL.map(x => x.key), 'label', 'label_theo_luat', 'ghi_chu', 'labeled_at', 'text_dup_group', 'n_text_dup', 'n_img_dup', 'text'];
+const csvCell = v => { const s = v == null ? '' : String(v); return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+function download(name, text, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], {type}));
+  a.download = name; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+function exportCSV() {
+  const rows = [COLS.join(',')];
+  let n = 0, unknown = 0;
+  for (const id in L) {
+    const e = L[id]; if (!e.l) continue;
+    const i = idIdx.get(id);
+    if (i == null) { unknown++; continue; }
+    const s = signals(i);
+    rows.push([ANNOT, id, PL.k[R.p[i]], PL.n[R.p[i]], R.r[i], isoDay(R.dy[i]), hasT[i], hasM[i], R.m[i] ? R.m[i].length : 0,
+      ...e.f.slice(0, NF), e.l, ruleLabel(e.f), e.n || '', e.t || '', R.dc[i] ?? '', s.dup.length, s.img.length, R.t[i]].map(csvCell).join(','));
+    n++;
+  }
+  if (!n) { toast('Chưa có review nào được gán nhãn'); return; }
+  const d = new Date(), stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}`;
+  download(`nhan_review_${ANNOT}_${stamp}.csv`, '\uFEFF' + rows.join('\r\n'), 'text/csv;charset=utf-8');
+  LS.set('exported:' + ANNOT, new Date().toISOString());
+  updateProgress();
+  toast(`Đã xuất ${n} nhãn${unknown ? ` (bỏ qua ${unknown} nhãn của review không có trong dữ liệu này)` : ''}`);
+}
+function parseCSV(text) {
+  const rows = []; let row = [], cell = '', q = false;
+  text = text.replace(/^\uFEFF/, '');
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else q = false; } else cell += c; }
+    else if (c === '"') q = true;
+    else if (c === ',') { row.push(cell); cell = ''; }
+    else if (c === '\n' || c === '\r') { if (c === '\r' && text[i + 1] === '\n') i++; row.push(cell); rows.push(row); row = []; cell = ''; }
+    else cell += c;
+  }
+  if (cell || row.length) { row.push(cell); rows.push(row); }
+  return rows.filter(r => r.length > 1 || r[0]);
+}
+function importFile(file) {
+  const rd = new FileReader();
+  rd.onload = () => {
+    let incoming = {};
+    try {
+      if (file.name.toLowerCase().endsWith('.json')) {
+        const j = JSON.parse(rd.result); incoming = j.labels || j;
+      } else {
+        const rows = parseCSV(rd.result), h = rows.shift(), col = k => h.indexOf(k);
+        if (col('review_id') < 0 || col('label') < 0) throw new Error('thiếu cột review_id / label');
+        const norm = {genuine: 'Genuine', uncertain: 'Uncertain', spam: 'Spam', 'thật': 'Genuine', 'chưa chắc': 'Uncertain', 'giả': 'Spam'};
+        for (const r of rows) {
+          const id = r[col('review_id')]; if (!id) continue;
+          const l = norm[(r[col('label')] || '').trim().toLowerCase()] || null;
+          incoming[id] = {f: FL.map(x => col(x.key) >= 0 && +r[col(x.key)] === 1 ? 1 : 0), l,
+                          n: col('ghi_chu') >= 0 ? r[col('ghi_chu')] : '', t: col('labeled_at') >= 0 ? r[col('labeled_at')] : null};
+        }
+      }
+    } catch (err) { toast('Không đọc được file: ' + err.message, 6000); return; }
+    let add = 0, upd = 0, keep = 0;
+    for (const id in incoming) {
+      const a = incoming[id], b = L[id];
+      if (!b || !b.l) { L[id] = a; add++; }
+      else if ((a.t || '') > (b.t || '')) { L[id] = a; upd++; }
+      else keep++;
+    }
+    saveLabels(); renderSide(); applyView(true);
+    toast(`Đã nhập: ${add} mới, ${upd} cập nhật (mới hơn), ${keep} giữ nguyên`, 5000);
+  };
+  rd.readAsText(file, 'utf-8');
+}
+
+let toastT = null;
+function toast(msg, ms = 3000) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, ms); }
+
+// ---------------------------------------------------------------- sự kiện
+document.addEventListener('click', ev => {
+  const a = ev.target.closest('[data-act]');
+  const card = ev.target.closest('[data-card]');
+  if (card && !card.dataset.modal && !ev.target.closest('input,textarea')) setActive(+card.dataset.card, false);
+  if (!a) {
+    if (ev.target.id === 'md' && ANNOT) closeModal();
+    if (ev.target.classList && ev.target.classList.contains('stage')) { LBX = null; renderLB(); }
+    return;
+  }
+  const act = a.dataset.act, i = a.dataset.i != null ? +a.dataset.i : null;
+  switch (act) {
+    case 'place': {
+      if (ev.target.closest('input')) return;
+      const p = +a.dataset.p; UI.sel = [p]; UI.period = null; UI.rating = 0;
+      if (UI.scope === 'all') { UI.scope = 'sel'; $('#scope').value = 'sel'; }
+      renderSide(); applyView(); break;
+    }
+    case 'pcheck': {
+      const p = +a.dataset.p;
+      UI.sel = a.checked ? [...new Set([...UI.sel, p])] : UI.sel.filter(x => x !== p);
+      renderSide(); applyView(); break;
+    }
+    case 'grp': UI.collapsed[a.dataset.g] = !UI.collapsed[a.dataset.g]; saveUI(); renderSide(); break;
+    case 'selAll': {
+      const q = fold(UI.pq.trim());
+      UI.sel = PL.k.map((_, p) => p).filter(p => !q || fold(PL.n[p]).includes(q) || fold(PL.q[p]).includes(q));
+      renderSide(); applyView(); break;
+    }
+    case 'selNone': UI.sel = []; renderSide(); applyView(); break;
+    case 'type': UI[a.dataset.v] = !UI[a.dataset.v]; applyView(); break;
+    case 'status': UI.status = a.dataset.v; applyView(); break;
+    case 'sig': UI.sig = a.dataset.v; applyView(); break;
+    case 'rating': UI.rating = UI.rating === +a.dataset.r ? 0 : +a.dataset.r; applyView(true); break;
+    case 'clrRating': UI.rating = 0; applyView(true); break;
+    case 'period': {
+      const f = +a.dataset.from, t = +a.dataset.to;
+      UI.period = UI.period && UI.period.from === f && UI.period.to === t ? null : {from: f, to: t, lbl: a.dataset.lbl};
+      applyView(true); break;
+    }
+    case 'clrPeriod': UI.period = null; applyView(true); break;
+    case 'more': {
+      const t = a.previousElementSibling; t.classList.toggle('clamp');
+      a.textContent = t.classList.contains('clamp') ? 'Xem thêm' : 'Thu gọn'; break;
+    }
+    case 'flag': toggleFlag(i, +a.dataset.k); break;
+    case 'label': setLabel(i, a.dataset.l); break;
+    case 'acceptHints': acceptHints(i); break;
+    case 'ev': {
+      const c = a.closest('[data-card]'), slot = $('.evslot', c), k = a.dataset.k;
+      $$('.sig', c).forEach(x => x.classList.remove('on'));
+      if (slot.dataset.k === k) { slot.innerHTML = ''; slot.dataset.k = ''; }
+      else { slot.innerHTML = evHTML(i, k); slot.dataset.k = k; a.classList.add('on'); }
+      break;
+    }
+    case 'propagate': propagate(i); break;
+    case 'burstView': {
+      closeModal();
+      const d = R.dy[i];
+      UI.sel = [R.p[i]]; UI.scope = 'sel'; $('#scope').value = 'sel';
+      UI.period = {from: d - 3, to: d + 3, lbl: `${fmtDay(d - 3)} – ${fmtDay(d + 3)}`};
+      renderSide(); applyView(); break;
+    }
+    case 'open': openReview(i); break;
+    case 'lb': openLB(i, +a.dataset.j); break;
+    case 'lbJump': openLB(i, +a.dataset.j); break;
+    case 'lbPrev': LBX.j = (LBX.j - 1 + R.m[LBX.i].length) % R.m[LBX.i].length; renderLB(); break;
+    case 'lbNext': LBX.j = (LBX.j + 1) % R.m[LBX.i].length; renderLB(); break;
+    case 'lbClose': LBX = null; renderLB(); break;
+    case 'mdClose': closeModal(); break;
+    case 'help': showBox(helpHTML()); break;
+    case 'annot': askAnnot(false); break;
+    case 'export': exportCSV(); break;
+    case 'import': $('#fileIn').click(); break;
+  }
+});
+document.addEventListener('change', ev => {
+  if (ev.target.id === 'sort') { UI.sort = ev.target.value; applyView(); }
+  if (ev.target.id === 'adv') { UI.advance = ev.target.checked; saveUI(); }
+  if (ev.target.id === 'scope') { UI.scope = ev.target.value; applyView(); }
+  if (ev.target.id === 'fileIn' && ev.target.files[0]) { importFile(ev.target.files[0]); ev.target.value = ''; }
+});
+let noteT = null, qT = null;
+document.addEventListener('input', ev => {
+  const t = ev.target;
+  if (t.classList.contains('note') && t.dataset.i != null) {
+    clearTimeout(noteT);
+    noteT = setTimeout(() => {
+      const i = +t.dataset.i, e = ensure(i); e.n = t.value; touch(e); saveLabels();
+      $$(`[data-card="${i}"] .note`).forEach(n => { if (n !== t) n.value = t.value; });
+      const w = t.parentElement.querySelector('.warn'); if (w && t.value.trim()) w.remove();
+    }, 300);
+  }
+  if (t.id === 'q') { clearTimeout(qT); qT = setTimeout(() => { UI.q = t.value; applyView(); }, 250); }
+  if (t.id === 'pq') { UI.pq = t.value; renderSide(); }
+});
+document.addEventListener('error', ev => {
+  const t = ev.target;
+  if (t.tagName === 'IMG' && t.parentElement && t.parentElement.classList.contains('ph') && !t.dataset.failed) {
+    t.dataset.failed = 1; t.style.visibility = 'hidden';
+    t.insertAdjacentHTML('afterend', '<span class="err">Không tải được ảnh (cần mạng)</span>');
+  }
+}, true);
+document.addEventListener('keydown', ev => {
+  const tag = (ev.target.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'textarea' || tag === 'select') {
+    if (ev.target.classList.contains('note') && (ev.key === 'Enter' || ev.key === 'Escape')) { ev.target.blur(); ev.preventDefault(); }
+    else if (ev.key === 'Escape') ev.target.blur();
+    return;
+  }
+  if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
+  const k = ev.key.toLowerCase();
+  if (LBX) {
+    if (k === 'escape') { LBX = null; renderLB(); }
+    else if (k === 'arrowleft') $('[data-act="lbPrev"]')?.click();
+    else if (k === 'arrowright') $('[data-act="lbNext"]')?.click();
+    return;
+  }
+  if (k === 'escape') { if (MODAL !== -1 && ANNOT) closeModal(); return; }
+  if (MODAL === -2) return;
+  if (k === '?') { showBox(helpHTML()); return; }
+  if (k === '/') { ev.preventDefault(); $('#q').focus(); return; }
+  if (k === 'j') { move(1); ev.preventDefault(); return; }
+  if (k === 'k') { move(-1); ev.preventDefault(); return; }
+  const i = target();
+  if (i < 0) { if (/^[1-7tcgaxnoe]$/.test(k)) { move(0); } else return; }
+  const t = target();
+  if (t < 0) return;
+  if (/^[1-7]$/.test(k) && +k <= NF) toggleFlag(t, +k - 1);
+  else if (k === 't') setLabel(t, 'Genuine', true);
+  else if (k === 'c') setLabel(t, 'Uncertain', true);
+  else if (k === 'g') setLabel(t, 'Spam', true);
+  else if (k === 'a') acceptHints(t);
+  else if (k === 'x') { const e = entry(t); if (e) { e.l = null; touch(e); saveLabels(); refreshCard(t); renderSideSoon(); } }
+  else if (k === 'n') { ev.preventDefault(); $(`${MODAL >= 0 ? '#md' : '#c' + t} .note`)?.focus(); }
+  else if (k === 'o') { if (R.m[t]) openLB(t, 0); }
+  else if (k === 'e') { $(`${MODAL >= 0 ? '#md' : '#c' + t} .sig[data-act="ev"]`)?.click(); }
+});
+new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) renderMore(); }, {root: $('#main'), rootMargin: '600px'}).observe($('#sentinel'));
+
+// ---------------------------------------------------------------- khởi động
+(async () => {
+  try {
+    if (typeof DecompressionStream === 'undefined') throw new Error('Trình duyệt quá cũ — hãy dùng Chrome, Edge, Firefox hoặc Safari bản mới');
+    index(await loadData());
+  } catch (err) {
+    $('#loadMsg').innerHTML = '❌ Không mở được dữ liệu: ' + esc(err.message);
+    $('.spin').remove();
+    return;
+  }
+  UI.sel = UI.sel.filter(p => p < PL.k.length);
+  $('#q').value = UI.q; $('#pq').value = UI.pq; $('#scope').value = UI.scope;
+  loadLabels();
+  $('#annotName').textContent = ANNOT || '—';
+  renderSide(); applyView(); updateProgress();
+  $('#loading').remove();
+  if (!ANNOT) askAnnot(true);
+  try { localStorage.setItem('gnr:test', '1'); localStorage.removeItem('gnr:test'); }
+  catch { storageOK = false; toast('⚠ Trình duyệt không cho lưu tự động — hãy bấm "Xuất CSV" thường xuyên', 8000); }
+})();
+</script>
+</body>
+</html>
