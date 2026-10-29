@@ -82,3 +82,6 @@ Thumbs.db
 
 # Claude Code: cấu hình cục bộ (không phải mã nguồn)
 .claude/
+
+# file nén để chia sẻ nội bộ
+share/

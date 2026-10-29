@@ -35,6 +35,10 @@ def run(cfg: dict) -> Path:
         cov = places["coverage"].dropna()
         add("Completeness", "Độ phủ thu thập trung bình (fetched/expected)", round(cov.mean(), 3) if len(cov) else None,
             f"min={cov.min():.2f}, max={cov.max():.2f}" if len(cov) else "")
+        if "excluded_low_coverage" in places:
+            ex = places[places["excluded_low_coverage"]]
+            add("Completeness", "Số địa điểm bị loại vì độ phủ thấp", len(ex),
+                "; ".join(f"{getattr(r, 'name', r.place_key)} ({r.fetched:.0f}/{r.expected:.0f})" for r in ex.itertuples()))
     # Uniqueness
     add("Uniqueness", "Số review_id trùng (trước làm sạch)", int(parsed["review_id"].duplicated().sum()))
     add("Uniqueness", "Số nội dung trùng y hệt (≥8 từ, sau làm sạch)",
@@ -65,7 +69,8 @@ def run(cfg: dict) -> Path:
         "điền cột 'khớp' sau khi kiểm tra")
 
     write_table(pd.DataFrame(rows), P.tables / "data_quality.csv")
-    cols = [c for c in ["place_key", "name", "user_rating_count", "expected", "fetched", "coverage"] if c in places]
+    cols = [c for c in ["place_key", "name", "user_rating_count", "expected", "fetched", "coverage",
+                        "excluded_low_coverage"] if c in places]
     write_table(places[cols], P.tables / "coverage_by_place.csv")
     samp = clean.sample(min(20, len(clean)), random_state=cfg["project"]["seed"])
     samp = samp.merge(places[[c for c in ["place_key", "name", "url"] if c in places]], on="place_key", how="left")

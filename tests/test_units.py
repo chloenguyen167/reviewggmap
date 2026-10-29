@@ -196,3 +196,44 @@ def test_read_claude_ai_result(tmp_path):
     p2 = tmp_path / "b.csv"
     p2.write_text(csv, encoding="utf-8")
     assert len(_read_result(p2)) == 1
+
+
+# ---------- công cụ gán nhãn (src/labeltool) ----------
+def test_media_extract_photos_and_video():
+    from src.labeltool.media import _records
+    H = "https://lh3.googleusercontent.com/"
+    rec = lambda rid, items: [rid, None, [None, None, items]]
+    photo = lambda pid, vid=None: ["m", [None] * 6 + [[H + "grass-cs/" + pid + "=k-no"]]
+                                        + ([None] * 14 + [[None, None, [None] * 10 + [[[0, 1, 2, H + "gpms-cs-s/" + vid + "=m18"]]]]]
+                                           if vid else [])]
+    body = [[rec("ChAAAAAAAAAAAAAAAAAAAAAA", [photo("p1"), photo("p2", "v2")]),
+             rec("ChBBBBBBBBBBBBBBBBBBBBBB", []),
+             [H + "a/avatar", H + "local-reviews/badge=s120"]]]
+    out = {}
+    _records(body, {"ChAAAAAAAAAAAAAAAAAAAAAA", "ChBBBBBBBBBBBBBBBBBBBBBB"}, out)
+    assert out["ChAAAAAAAAAAAAAAAAAAAAAA"] == [(H + "grass-cs/p1", None), (H + "grass-cs/p2", H + "gpms-cs-s/v2=m18")]
+    assert "ChBBBBBBBBBBBBBBBBBBBBBB" not in out
+
+
+def test_image_hash_groups_recompressed_copies():
+    from io import BytesIO
+
+    from PIL import Image
+
+    from src.labeltool.image_hash import _signed, dhash, group_images
+    rng = np.random.default_rng(0)
+    imgs = [Image.fromarray(rng.integers(0, 255, (64, 64, 3), dtype=np.uint8)).resize((256, 256)) for _ in range(3)]
+    buf = BytesIO()
+    imgs[0].resize((180, 180)).save(buf, "JPEG", quality=60)       # bản tải lại: đổi cỡ + nén
+    hs = [dhash(im) for im in imgs + [Image.open(BytesIO(buf.getvalue()))]]
+    h = np.array([_signed(a) for a, _ in hs], dtype=np.int64)
+    v = np.array([_signed(b) for _, b in hs], dtype=np.int64)
+    g = group_images(h, v, max_dist=6, max_bucket=100)
+    assert g[0] == g[3] >= 0 and g[1] == -1 and g[2] == -1
+
+
+def test_clean_owner_response():
+    from src.labeltool.build import _clean_owner
+    raw = "Thông tin phản hồi từ chủ sở hữu 2 năm trước\nCảm ơn bạn! … Xem thêm\nBản dịch của Google ・ Xem bản gốc (Tiếng Anh)"
+    assert _clean_owner(raw) == "2 năm trước\nCảm ơn bạn! …"
+    assert _clean_owner("Thông tin phản hồi từ chủ sở hữu 1 năm trước") == ""

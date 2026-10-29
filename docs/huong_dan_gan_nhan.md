@@ -10,7 +10,7 @@ Hai người (A, B) gán nhãn **độc lập** toàn bộ **Nhóm B (300 mục 
 4. Khen nhiệt tình hoặc chê gay gắt **tự nó không phải** bằng chứng spam.
 5. Đánh giá từng cờ trước, kết luận sau. Thiếu thông tin để quyết một cờ thì điền **0**.
 6. **Nhãn nói về bằng chứng, không nói về sự thật.** `Genuine` nghĩa là *không tìm thấy dấu hiệu spam*, không có nghĩa là đã chứng minh review thật. Không ai kiểm chứng được 100%, nên nhãn chỉ ghi nhận bằng chứng nhìn thấy được.
-7. **Không dùng ảnh** khi gán nhãn: file không chứa ảnh và Claude không xem được ảnh, nên bỏ ảnh để người và Claude được so trên cùng thông tin. Nếu tình cờ thấy dấu hiệu từ ảnh (ví dụ cùng một ảnh xuất hiện ở nhiều review), ghi vào `ghi_chu` nhưng **không** đổi cờ hay nhãn.
+7. **Không dùng ảnh** khi gán nhãn: file không chứa ảnh và Claude không xem được ảnh, nên bỏ ảnh để người và Claude được so trên cùng thông tin. Nếu tình cờ thấy dấu hiệu từ ảnh (ví dụ cùng một ảnh xuất hiện ở nhiều review), ghi vào `ghi_chu` nhưng **không** đổi cờ hay nhãn. (Nguyên tắc này chỉ áp dụng cho gold set. Công cụ gán nhãn theo quán ở mục 6 **có** dùng ảnh, qua cờ f7.)
 
 ## 2. Các cột trong `gold_sample_blind.csv`
 
@@ -78,3 +78,37 @@ Bạn **được phép kết luận khác luật**, nhưng phải ghi lý do ng�
 6. Báo cáo Kappa **trước** hòa giải, kèm % đồng ý. Kappa của cờ hiếm gặp có thể ≈ 0 dù hai người đồng ý gần như toàn bộ. `gold_final.csv` có cột `label_source` (human/llm) để báo cáo kết quả tách riêng theo nguồn nhãn.
 
 **Định dạng:** cờ là `0`/`1`; `label` là `Genuine`, `Uncertain` hoặc `Spam`; `ghi_chu` là tự do, ngắn gọn. Không thêm, xóa hay đổi thứ tự cột.
+
+## 6. Công cụ gán nhãn theo quán (1 file HTML)
+
+Dùng khi cần gán nhãn **toàn bộ review của một hoặc nhiều quán** (ví dụ để đo hệ thống trên từng quán), bên cạnh gold set ở trên.
+
+**Tạo file** (người quản lý dữ liệu, sau khi đã chạy `all`):
+
+```bash
+python run_pipeline.py --stages labeltool_all   # media → img_hash → labeltool
+```
+
+Kết quả là `data/labels/labeltool/gan_nhan_review.html` (khoảng 25 MB). Người gán nhãn chỉ cần **tải đúng file này** rồi mở bằng Chrome, Edge, Firefox hoặc Safari bản mới, không cần cài gì. Ảnh được tải trực tiếp từ Google nên máy cần có mạng. Bước `img_hash` tải ảnh thu nhỏ của mọi review (lần đầu khoảng 10–20 phút, các lần sau chỉ tải ảnh mới). Nếu bỏ qua bước này thì công cụ vẫn chạy, chỉ thiếu phần "trùng ảnh".
+
+**Cách dùng:**
+1. Nhập tên hoặc mã người gán (A, B…). Mỗi người có bộ nhãn riêng, tự lưu trong trình duyệt.
+2. Cột trái là danh sách quán. Bấm tên quán để xem một quán, tick ô vuông để chọn nhiều quán cùng lúc. Thanh tiến độ cho biết số review đã gán trên số review cần gán.
+3. Phần đầu trang cho xem tổng quan quán giống Google Maps: điểm, phân bố sao, biểu đồ số review theo tháng. Bấm vào một cột sao hoặc một cột tháng để lọc.
+4. **Chỉ cần gán review có nội dung hoặc có ảnh/video.** Review chỉ chấm sao mặc định bị ẩn (chip "★ Chỉ chấm sao").
+5. Mỗi review hiển thị kèm bằng chứng tính sẵn. Bấm vào để mở và so sánh:
+   - **⧉ Nội dung trùng**: các review gần trùng (M1a), kể cả ở quán khác, nên không phải tự Ctrl+F. Nút "Gán nhãn … cho N review trùng chưa gán" áp nhãn hiện tại cho cả nhóm.
+   - **🖼 Ảnh trùng**: ảnh giống hệt ảnh của review khác (so khớp nội dung ảnh, không phải so URL), hiện cạnh nhau để kiểm tra bằng mắt. Bấm vào ảnh để xem ảnh lớn hoặc phát video.
+   - **👤 Tài khoản có review khác**: các review khác của cùng tài khoản, đánh dấu những review cùng ngày.
+   - **📈 Đợt dồn**: số review của quán trong ±3 ngày so với mức bình thường (luật f6).
+6. Cờ có **viền vàng nét đứt** là gợi ý tính từ dữ liệu (f3, f4, f5, f6, f7). Phải kiểm tra bằng chứng trước khi bật. Phím `A` bật mọi cờ gợi ý.
+7. Ô tìm kiếm tìm theo nội dung, không phân biệt dấu. Chọn phạm vi "Toàn bộ dữ liệu" để tìm ở mọi quán.
+8. Phím tắt: `J`/`K` chuyển review, `1`–`7` bật/tắt cờ, `T`/`C`/`G` kết luận Thật / Chưa chắc / Giả, `N` ghi chú, `O` xem ảnh, `?` mở hướng dẫn.
+9. Bấm **⬇ Xuất CSV** để nộp nhãn. Số đỏ trên nút là số nhãn chưa xuất. Nút **⬆ Nhập** nạp lại file đã xuất, dùng khi chuyển máy hoặc gộp nhãn; nếu trùng review thì giữ nhãn mới hơn.
+
+**Cờ bổ sung f7_trung_anh**: gắn khi ảnh đính kèm giống hệt ảnh của review khác (khác tài khoản hoặc khác quán), tức là ảnh lấy lại hoặc ảnh mạng. Luật gợi ý trong công cụ coi f7 là cờ mạnh như f2 và f3: có f7 thì gợi ý **Spam**.
+
+**File xuất** `nhan_review_<người gán>_<thời điểm>.csv` (UTF-8, mở được bằng Excel) có các cột: `annotator, review_id, place_key, place_name, rating, review_day, has_text, has_image, n_media`, 7 cờ `f1…f7` (tên cột giống các file `annotator_*.csv`), `label, label_theo_luat, ghi_chu, labeled_at`, cùng `text_dup_group, n_text_dup, n_img_dup, text` để tham khảo. Nối với `scored_reviews.parquet` qua `review_id` để đánh giá hệ thống. Lọc theo `has_text` / `has_image` để báo cáo riêng từng nhóm.
+
+**Lưu ý về độ khách quan:** file **không chứa điểm nghi vấn hay zone** của hệ thống. Tuy vậy, phần "Nội dung trùng" lấy từ M1a, nên người gán sẽ dễ thấy các bản trùng mà M1a đã tìm ra hơn những bản M1a bỏ sót. Khi nghi ngờ, hãy dùng ô tìm kiếm "Toàn bộ dữ liệu" để tự tra.
+

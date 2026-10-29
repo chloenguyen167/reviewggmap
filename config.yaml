@@ -26,6 +26,9 @@ collect:
   source: playwright             # playwright | serpapi
   places_file: raw/places/places_selected.csv
 
+  retry_coverage: 0.95           # lấy lại địa điểm đạt < 95% số review Google báo
+  retry_attempts: 2              # số lần thử lại tối đa mỗi địa điểm
+  min_coverage: 0.5              # parse LOẠI địa điểm lấy được < 50% số review Google báo (mẫu bị chọn lệch)
   place_filter:                  # tiêu chí A1
     min_reviews: 100
     max_reviews: 3000
@@ -175,3 +178,18 @@ evaluation:
     m2.contamination: [0.01, 0.02, 0.05]
     m2.window: [14, 28, 56]
     m2.coord_window_days: [7, 14, 30]
+
+# ---------------------------------------------------------------------
+# CÔNG CỤ GÁN NHÃN THEO QUÁN (src/labeltool) — --stages labeltool_all
+# ---------------------------------------------------------------------
+labeltool:
+  output: labeltool/gan_nhan_review.html   # tương đối so với paths.labels; 1 file HTML chứa đủ dữ liệu
+  image_hash:
+    thumb: "=w64-h64-k-no"       # kích thước ảnh tải về để băm (~3 KB/ảnh)
+    workers: 32
+    hash_max_dist: 6             # Hamming tối đa (mỗi chiều dHash) để coi 2 ảnh là một
+    min_bits: 8                  # bỏ ảnh gần như phẳng (ít thông tin, dễ ghép nhầm)
+    max_bucket: 3000
+  burst:                         # gợi ý f6 hiển thị trong công cụ (giống luật trong huong_dan_gan_nhan.md)
+    min_count: 5
+    ratio: 3.0

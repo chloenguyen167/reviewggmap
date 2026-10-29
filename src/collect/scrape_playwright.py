@@ -18,6 +18,7 @@ from __future__ import annotations
 import json
 import random
 import re
+import shutil
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -413,15 +414,74 @@ class MapsScraper:
                       row.get("user_rating_count"), stats["net_saved"], stats["net_failed"])
         return stats
 
+    # ---- thử lại không phá dữ liệu cũ ----------------------------------------
+    def _stash(self, key: str) -> None:
+        dest = self.P.raw / "reviews_prev" / key
+        shutil.rmtree(dest, ignore_errors=True)
+        dest.mkdir(parents=True)
+        for f in (self.P.raw / "reviews").glob(f"pw_{key}.*"):
+            shutil.move(str(f), dest / f.name)
+        net = self.P.raw / "network" / key
+        if net.exists():
+            shutil.move(str(net), dest / "network")
+
+    def _restore(self, key: str) -> None:
+        src = self.P.raw / "reviews_prev" / key
+        for f in (self.P.raw / "reviews").glob(f"pw_{key}.*"):
+            f.unlink()
+        shutil.rmtree(self.P.raw / "network" / key, ignore_errors=True)
+        for f in src.glob("pw_*"):
+            shutil.move(str(f), self.P.raw / "reviews" / f.name)
+        if (src / "network").exists():
+            shutil.move(str(src / "network"), self.P.raw / "network" / key)
+        shutil.rmtree(src, ignore_errors=True)
+
+    def _scrape_with_retry(self, row: dict) -> dict:
+        """Lấy review; nếu đạt < retry_coverage số Google báo (hoặc lỗi) → thử lại, giữ kết quả tốt nhất."""
+        c = self.cfg["collect"]
+        key, exp = row["place_key"], row.get("user_rating_count")
+        cov = c.get("retry_coverage", c.get("min_coverage", 0.5))
+        low = lambda st: bool(exp and exp == exp and exp > 0 and st.get("fetched", 0) < cov * exp)
+        done = self.P.raw / "reviews" / f"pw_{key}.done.json"
+        best = json.loads(done.read_text(encoding="utf-8")) if done.exists() else None
+        if best is not None and not low(best):
+            self._skipped = True
+            return self.scrape_place(row)                 # đã đủ → scrape_place tự bỏ qua
+        self._skipped = False
+        for attempt in range(1 + c.get("retry_attempts", 2)):
+            if best is not None:
+                self._stash(key)                          # cất bản cũ, lần này tệ hơn thì khôi phục
+            if attempt:
+                self.log.warning("%s: độ phủ thấp (%s/%s) → thử lại (lần %d) sau 60 giây", row.get("name"),
+                                 best.get("fetched") if best else 0, int(exp or 0), attempt + 1)
+                time.sleep(60)
+            try:
+                st = self.scrape_place(row)
+            except Exception as e:
+                self.log.error("Lỗi ở %s (lần %d): %s", row.get("name"), attempt + 1, str(e).splitlines()[0])
+                st = None
+            if st is not None and (best is None or st.get("fetched", 0) >= best.get("fetched", 0)):
+                best = st
+                shutil.rmtree(self.P.raw / "reviews_prev" / key, ignore_errors=True)
+            elif best is not None:
+                self._restore(key)
+            if best is not None and not low(best):
+                break
+        if best is None:
+            raise RuntimeError("không lấy được review sau mọi lần thử")
+        if low(best):
+            self.log.warning("%s: vẫn chỉ %s/%s review sau khi thử lại", row.get("name"), best.get("fetched"), int(exp))
+        return best
+
     def scrape_reviews(self, places: pd.DataFrame) -> pd.DataFrame:
         stats = []
         for i, row in enumerate(places.to_dict("records")):
             try:
-                stats.append(self.scrape_place(row))
+                stats.append(self._scrape_with_retry(row))
             except Exception as e:                        # một quán lỗi không làm dừng cả phiên
                 self.log.error("Lỗi ở %s: %s", row.get("name"), e)
                 stats.append({"place_key": row["place_key"], "name": row.get("name"), "error": str(e)})
-            if i < len(places) - 1:
+            if i < len(places) - 1 and not getattr(self, "_skipped", False):
                 time.sleep(self.rng.uniform(*self.pc["delay_between_places_s"]))
         return pd.DataFrame(stats)
 

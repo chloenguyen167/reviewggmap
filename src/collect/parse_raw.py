@@ -19,7 +19,7 @@ import pandas as pd
 
 from src.collect.relative_date import parse_relative_date
 from src.collect.rpc_timestamps import extract_from_dir
-from src.utils.common import get_logger, get_salt, hash_id, read_jsonl
+from src.utils.common import get_logger, get_salt, hash_id, read_jsonl, write_table
 from src.utils.config import Paths
 
 RPC_TOLERANCE = timedelta(days=2)
@@ -255,9 +255,23 @@ def run(cfg: dict) -> Path:
         "gen_" + hash_id(f"{r.place_key}|{r.reviewer_hash}|{r.text}|{r.date_text}", "rid", 20)
         for r in df[miss].itertuples()]
 
+    # Loại địa điểm có độ phủ thu thập quá thấp: phần lấy được là mẫu bị chọn lệch (vd. Google chỉ hiện
+    # ~30 review theo thứ tự "liên quan", không sắp xếp được) → làm sai chuỗi thời gian (M2) và tỷ lệ.
+    places = _places_table(P, cfg, df)
+    min_cov = cfg["collect"].get("min_coverage", 0.5)
+    if "coverage" in places:
+        low = places[places["coverage"].notna() & (places["coverage"] < min_cov)]
+        if len(low):
+            for r in low.itertuples():
+                log.warning("LOẠI địa điểm %s: độ phủ %.0f%% (%s/%s review) < %.0f%%", getattr(r, "name", r.place_key),
+                            100 * r.coverage, int(r.fetched), int(r.expected) if r.expected == r.expected else "?",
+                            100 * min_cov)
+            df = df[~df["place_key"].isin(low["place_key"])]
+        places["excluded_low_coverage"] = places["place_key"].isin(low["place_key"])
+
     out = P.interim / "reviews_parsed.parquet"
     df.to_parquet(out, index=False)
-    _places_table(P, cfg, df).to_parquet(P.interim / "places.parquet", index=False)
+    places.to_parquet(P.interim / "places.parquet", index=False)
     pd.DataFrame({"reviewer_hash": list({**priv_pw, **priv_sp}.keys()),
                   "contributor_id": list({**priv_pw, **priv_sp}.values())}).to_parquet(
         P.interim / "private_reviewer_map.parquet", index=False)

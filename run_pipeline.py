@@ -9,15 +9,20 @@ Ví dụ:
   python run_pipeline.py --stages reviews       # lấy review (Playwright hoặc SerpApi, theo config)
   python run_pipeline.py --stages benchmark     # tải ViSpamReviews v2 (cần HF_TOKEN trong .env) cho M1b
   python run_pipeline.py --stages all           # parse → clean → quality → eda → m1a,m1b,m2,m3 → fusion → sample
+  python run_pipeline.py --stages ws            # PHƯƠNG PHÁP CHÍNH: 8 luật (LF) → label model Dawid–Skene → ws_scores.parquet
   python run_pipeline.py --stages contributors  # (tùy chọn) lịch sử reviewer nghi vấn, rồi chạy lại parse..fusion
   # ... 2 người gán nhãn điền data/labels/annotator_A.csv, annotator_B.csv (item_id 1..human_n) ...
   python run_pipeline.py --stages llm_export    # tạo batch CSV + PROMPT.md để Claude (claude.ai) gán toàn bộ gold set
   python run_pipeline.py --stages llm_import    # gộp CSV kết quả từ claude.ai → annotator_C.csv
   python run_pipeline.py --stages eval          # agreement → metrics → ablation → sensitivity
 
+  # Công cụ gán nhãn theo quán (1 file HTML, giao diện kiểu Google Maps)
+  python run_pipeline.py --stages labeltool_all # media → img_hash → labeltool → data/labels/labeltool/*.html
+
 Nhóm bước:
   all  = parse,clean,quality,eda,m1a,m1b,m2,m3,fusion,sample
   eval = agreement,metrics,ablation,sensitivity
+  labeltool_all = media,img_hash,labeltool
 """
 from __future__ import annotations
 
@@ -33,6 +38,7 @@ from src.utils.config import Paths, load_config
 GROUPS = {
     "all": ["parse", "clean", "quality", "eda", "m1a", "m1b", "m2", "m3", "fusion", "sample"],
     "eval": ["agreement", "metrics", "ablation", "sensitivity"],
+    "labeltool_all": ["media", "img_hash", "labeltool"],
 }
 
 
@@ -67,9 +73,10 @@ def _stage(name: str, cfg: dict):
         "demo": "src.synthetic.make_demo_data", "benchmark": "src.collect.download_benchmark", "parse": "src.collect.parse_raw", "clean": "src.preprocess.clean",
         "quality": "src.preprocess.quality", "eda": "src.preprocess.eda", "m1a": "src.modules.m1a_duplicate",
         "m1b": "src.modules.m1b_content", "m1b_phobert": "src.modules.m1b_phobert", "m2": "src.modules.m2_temporal", "m3": "src.modules.m3_behavior",
-        "fusion": "src.fusion.score", "sample": "src.evaluation.sample_gold",
+        "fusion": "src.fusion.score", "ws": "src.fusion.ws_label_model", "sample": "src.evaluation.sample_gold",
         "demo_labels": "src.synthetic.simulate_annotations", "agreement": "src.evaluation.agreement",
         "metrics": "src.evaluation.metrics",
+        "media": "src.labeltool.media", "img_hash": "src.labeltool.image_hash", "labeltool": "src.labeltool.build",
     }
     if name == "llm_export":
         from src.evaluation.llm_label import run_export

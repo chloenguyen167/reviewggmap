@@ -383,6 +383,8 @@ Không dùng API: Claude gán qua giao diện claude.ai, không cần API key. C
 
 **Khi nào được dùng nhãn Claude cho phần còn lại của Nhóm A?** Chỉ khi cả năm điều kiện cùng đúng: κ(A–B) ≥ 0,6; đã hòa giải hết bất đồng của người; có ≥ 30 mục chung; κ(người–Claude) ≥ 0,6; và κ(người–Claude) không thấp hơn κ(A–B) quá 0,1. Kết luận và lý do ghi ở `reports/tables/llm_validation.csv`; `gold_final.csv` có cột `label_source` (`human`/`llm`) để báo cáo tách riêng.
 
+**Gán nhãn theo quán bằng giao diện:** `python run_pipeline.py --stages labeltool_all` tạo `data/labels/labeltool/gan_nhan_review.html`. Đây là một file HTML duy nhất, giao diện giống Google Maps, hiển thị ảnh/video của review, kèm bằng chứng nội dung trùng, ảnh trùng và các review khác của cùng tài khoản ở mọi quán. Người gán chọn một hoặc nhiều quán, gán nhãn bằng chuột hoặc phím tắt, rồi xuất CSV. Hướng dẫn ở mục 6 của [`docs/huong_dan_gan_nhan.md`](docs/huong_dan_gan_nhan.md).
+
 ---
 
 ## 10. Đánh giá
