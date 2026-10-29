@@ -85,3 +85,27 @@ Thumbs.db
 
 # file nén để chia sẻ nội bộ
 share/
+
+docs/*
+# …TRỪ hướng dẫn gán nhãn: src/evaluation/llm_label.py đọc file này khi chạy --stages llm_export
+!docs/huong_dan_gan_nhan.md
+# bản sao của docs/PLAN.md ở thư mục gốc
+PLAN_fake_review_gmaps_vn_v2.md
+# file nháp ở thư mục gốc
+giaithich.md
+
+# sản phẩm phụ khi build slide (pptxgenjs) / paper (LaTeX), phòng khi build trong repo
+node_modules/
+package.json
+package-lock.json
+*.pptx
+*.docx
+*.xlsx
+*.pdf
+*.aux
+*.bbl
+*.blg
+*.out
+*.synctex.gz
+*.fdb_latexmk
+*.fls

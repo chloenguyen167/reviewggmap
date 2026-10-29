@@ -1,8 +1,8 @@
 # Phát hiện đánh giá giả mạo trên Google Maps tại Việt Nam
 
-Đồ án môn **Kỹ thuật Xử lý Dữ liệu** (nhóm 12). Kho mã này là một **pipeline xử lý dữ liệu** từ đầu đến cuối: thu thập review công khai trên Google Maps, kiểm tra chất lượng và làm sạch, chấm "mức đáng ngờ" cho từng review bằng nhiều tín hiệu, rồi đánh giá kết quả trên một tập nhãn do người và Claude gán.
+Đồ án môn **Kỹ thuật Xử lý Dữ liệu** (nhóm 12). Kho mã này là một **pipeline xử lý dữ liệu** từ đầu đến cuối: thu thập review công khai trên Google Maps, kiểm tra chất lượng và làm sạch, tính nhiều tín hiệu nghi vấn, rồi **gộp chúng bằng weak supervision**: 8 luật đơn giản bỏ phiếu và mô hình **Dawid–Skene** tự học độ tin cậy của từng luật, **không cần nhãn để huấn luyện**. Nhãn người chỉ dùng để đánh giá.
 
-> **Điểm quan trọng nhất cần nhớ:** hệ thống **không kết luận** review nào là giả. Nó chấm một **Điểm Nghi Vấn** để xếp hạng "review nào nên được xem trước". Kết luận cuối cùng cần con người đọc. Vì vậy mọi review bị gắn cờ đều kèm **lý do** bằng tiếng Việt (ví dụ: "trùng nội dung với 4 quán khác; trong đợt tăng đột biến 26/09; tài khoản chỉ có 1 review").
+> **Điểm quan trọng nhất cần nhớ:** hệ thống **không kết luận** review nào là giả. Nó chấm một điểm để xếp hạng "review nào nên được xem trước". Kết luận cuối cùng cần con người đọc. Vì vậy mỗi review đều kèm **phiếu của từng luật** (luật nào cho là spam, luật nào cho là thật) để người đọc kiểm tra lại được.
 
 ## Mục lục
 
@@ -22,8 +22,7 @@
 14. [Đầu ra và mục tương ứng trong paper](#14-đầu-ra-và-mục-tương-ứng-trong-paper)
 15. [Xử lý sự cố](#15-xử-lý-sự-cố)
 16. [Hạn chế đã biết](#16-hạn-chế-đã-biết)
-17. [Đẩy code lên GitHub](#17-đẩy-code-lên-github)
-18. [Tài liệu liên quan](#18-tài-liệu-liên-quan)
+17. [Tài liệu liên quan](#17-tài-liệu-liên-quan)
 
 ---
 
@@ -33,7 +32,7 @@
 
 **Khó khăn.** (a) Chưa có bộ dữ liệu công khai nào gán nhãn thật/giả cho review Google Maps tiếng Việt; (b) review giả ngày càng giống review thật, đọc từng review riêng lẻ gần như không phân biệt được; (c) dữ liệu Google Maps mỏng: mỗi tài khoản thường chỉ có 1–2 review quan sát được.
 
-**Ý tưởng.** Không dựa vào một dấu hiệu, mà kết hợp nhiều nhóm tín hiệu (5 điểm module) rồi gộp lại:
+**Ý tưởng.** Không dựa vào một dấu hiệu, mà kết hợp nhiều nhóm tín hiệu. Các module dưới đây tính bằng chứng thô:
 
 | Tín hiệu | Câu hỏi nó trả lời | Ví dụ dấu hiệu |
 |---|---|---|
@@ -43,13 +42,16 @@
 | **M2b** Phối hợp liên quán | Các bản sao của cùng một nội dung có được đăng dồn ở nhiều quán trong vài ngày không? | Một câu xuất hiện ở 8 quán khác nhau trong cùng một tuần |
 | **M3** Hành vi tài khoản | Tài khoản này trông có tự nhiên không? | Tài khoản mới, 1 review, không ảnh, luôn chấm 1★ hoặc 5★ |
 
-Các điểm được gộp thành **Điểm Nghi Vấn** (0–1) và chia thành 3 vùng: `auto_flag` (đáng ngờ nhất, khoảng top 2%), `review` (nên xem tay, khoảng top 10%), `safe` (phần còn lại).
+**Phương pháp chính: weak supervision + Dawid–Skene** (mục 8.6). Bằng chứng của các module được viết thành **8 luật** một dòng (*labeling function*), mỗi luật bỏ phiếu *Spam*, *Thật* hoặc bỏ phiếu trắng. Mô hình **Dawid–Skene** nhìn các luật đồng ý/bất đồng với nhau để ước lượng độ tin cậy của từng luật (thuật toán EM, không dùng nhãn), rồi tính **P(spam)** cho từng review. Review được xếp theo P(spam); đội kiểm duyệt đọc top 5% hoặc 10%.
 
-**Vì sao không huấn luyện một mô hình phân loại?** Vì không có nhãn. Hướng khả thi là *chấm điểm bất thường không giám sát*, rồi dùng một tập nhãn nhỏ (gold set) chỉ để **đo** hệ thống đúng bao nhiêu, không để huấn luyện.
+Cách gộp cũ (điểm Fisher, 3 vùng `auto_flag`/`review`/`safe`, mục 8.5) vẫn còn trong code và được dùng làm **baseline**.
+
+**Vì sao không huấn luyện một mô hình phân loại?** Vì không có nhãn: chưa có bộ review Google Maps tiếng Việt nào gán nhãn sẵn, và mô hình học trên ViSpamReviews (thương mại điện tử) gắn cờ 42,8% review Google Maps. Weak supervision dùng kiến thức chuyên môn (luật) thay cho nhãn; tập nhãn nhỏ chỉ dùng để **đo** hệ thống đúng bao nhiêu.
+
 
 ---
 
-> **Trạng thái (03/10/2026):** code pipeline hoàn chỉnh và đã chạy end-to-end; đang thu thập lại 120 địa điểm bằng scraper đã sửa (đã có ngày chính xác 100%). Chưa gán nhãn, nên **chưa có số liệu đánh giá** (P@K, Kappa, ablation) nào trên dữ liệu thật.
+> **Trạng thái (29/10/2026):** đã thu thập 119 địa điểm (114.542 review sau làm sạch, 100% có ngày chính xác). Phương pháp chính đã chốt là **weak supervision + Dawid–Skene** (`--stages ws`). Đánh giá trên 568 review gán nhãn toàn bộ theo 4 quán: **ROC-AUC 0,899, PR-AUC 0,715** (đoán mò 0,205), hơn có ý nghĩa thống kê các baseline luật đơn giản, học chuyển miền và Isolation Forest; khi đọc 10% review tìm được 73% spam đã gán nhãn (pipeline Fisher cũ: 48%). Chi tiết và hạn chế ở mục 10.2 và 16. Gold set nhóm A/B (mục 9) chưa gán nhãn.
 
 ## 2. Sơ đồ pipeline
 
@@ -62,9 +64,11 @@ Các điểm được gộp thành **Điểm Nghi Vấn** (0–1) và chia thàn
                                     │
  C. CHẤM ĐIỂM           M1a trùng lặp · M1b quảng cáo · M2a burst trong quán · M2b phối hợp liên quán · M3 hành vi
                                     │
-                        fusion (Fisher) ──► Điểm Nghi Vấn + 3 vùng + lý do
+                        ws: 8 luật bỏ phiếu ──► Dawid–Skene (EM, không nhãn) ──► P(spam) + phiếu từng luật   [PHƯƠNG PHÁP CHÍNH]
+                        fusion (Fisher) ──► Điểm Nghi Vấn + 3 vùng + lý do                                   [baseline]
                                     │
- D. ĐÁNH GIÁ            sample (gold set) ──► gán nhãn (người A, B + Claude C)
+ D. ĐÁNH GIÁ            labeltool (gán nhãn toàn bộ theo quán) ──► labeltool_eval / exp_pu_ws / ws_paper_results
+                        sample (gold set) ──► gán nhãn (người A, B + Claude C)
                         ──► agreement (Kappa) ──► metrics (P@K, PR-AUC) ──► ablation ──► sensitivity
 ```
 
@@ -81,27 +85,28 @@ reviewggmap/
 ├── .env.example               # Mẫu biến môi trường (copy thành .env, KHÔNG commit .env)
 ├── resources/teencode_vi.txt  # Từ điển teencode/viết tắt tiếng Việt
 ├── docs/
-│   ├── PLAN.md                        # Kế hoạch chi tiết và lý do thiết kế
-│   ├── huong_dan_gan_nhan.md          # Tiêu chí gán nhãn cho người và Claude
-│   ├── Detecting Fake Reviews ... .xlsx   # Ma trận ~40 công trình liên quan
-│   └── nhóm 12 - data processing.docx     # Đề cương nộp môn học
+│   └── huong_dan_gan_nhan.md          # Tiêu chí gán nhãn (llm_export đọc file này)
 ├── src/
 │   ├── collect/        # Thu thập: scrape_playwright, serpapi_client, parse_raw, rpc_timestamps,
 │   │                   #           relative_date, place_url, login, download_benchmark
 │   ├── preprocess/     # clean, normalize_vi (chuẩn hóa tiếng Việt), quality (6 chiều), eda
 │   ├── modules/        # m1a_duplicate, m1b_content, m1b_phobert, m2_temporal, m3_behavior
-│   ├── fusion/         # score.py: gộp điểm, chia 3 vùng
-│   ├── evaluation/     # sample_gold, llm_label, agreement, metrics, ablation
+│   ├── fusion/         # ws_label_model.py: 8 luật + Dawid–Skene (PHƯƠNG PHÁP CHÍNH)
+│   │                   # score.py: gộp điểm Fisher, chia 3 vùng (baseline)
+│   ├── evaluation/     # sample_gold, llm_label, agreement, metrics, ablation (gold set)
+│   │                   # labeltool_eval (đánh giá trên nhãn theo quán), exp_pu_ws (PU learning vs WS)
+│   ├── labeltool/      # công cụ gán nhãn theo quán: build (HTML), media, image_hash
 │   ├── synthetic/      # make_demo_data, simulate_annotations (chỉ để chạy thử)
 │   └── utils/          # config, common, plotstyle
-├── tests/              # 24 test (unit + scraper chạy trên trang Google Maps giả lập)
+├── tests/              # 26 test unit + test scraper chạy trên trang Google Maps giả lập
 │
 │  ── Các thư mục dưới đây do pipeline SINH RA, đã nằm trong .gitignore (không push) ──
 ├── data/
 │   ├── raw/            # reviews/, network/, places/, contributors/  (có tên reviewer: KHÔNG chia sẻ)
 │   ├── interim/        # reviews_parsed/clean.parquet, private_reviewer_map.parquet (id thật: KHÔNG chia sẻ)
-│   ├── processed/      # features_m1a..m3.parquet, scored_reviews.parquet
-│   ├── labels/         # gold_sample_blind.csv, annotator_A/B/C.csv, gold_final.csv, claude_ai/
+│   ├── processed/      # features_m1a..m3.parquet, scored_reviews.parquet, ws_scores.parquet
+│   ├── labels/         # gold_sample_blind.csv, annotator_A/B/C.csv, gold_final.csv, claude_ai/,
+│   │                   # labeltool/ và nhan_review_<người gán>_<thời điểm>.csv (nhãn theo quán)
 │   ├── benchmark/      # ViSpamReviews v2 (chỉ dùng cho thí nghiệm lệch miền)
 │   └── models/         # mô hình đã huấn luyện (.joblib)
 ├── reports/            # tables/ (CSV) và figures/ (PNG) cho paper
@@ -235,6 +240,12 @@ python run_pipeline.py --stages all
 
 `all` = `parse → clean → quality → eda → m1a → m1b → m2 → m3 → fusion → sample`. Mất khoảng 1–2 phút cho vài chục nghìn review. Mỗi bước có thể chạy riêng (`--stages m2`, ...) và đọc/ghi file trung gian nên chạy lại nhanh.
 
+Sau đó chạy **phương pháp chính** (dưới 2 giây):
+
+```bash
+python run_pipeline.py --stages ws      # 8 luật → Dawid–Skene → data/processed/ws_scores.parquet
+```
+
 ### 6.6. (Tùy chọn) Lịch sử reviewer cho M3
 
 ```bash
@@ -353,9 +364,36 @@ Isolation Forest không giám sát trên các đặc trưng như: tài khoản �
 5. Xuất `module_correlation.csv` (tương quan Spearman giữa 4 điểm) để kiểm tra giả định độc lập của Fisher.
 6. Xuất `scored_reviews.parquet` gồm mọi điểm con, điểm tổng, vùng và cột `reasons` (lý do dạng văn bản).
 
+> Fusion Fisher là cấu hình chốt **trước** khi có nhãn. Trên nhãn thật nó thua weak supervision (mục 10.2), một phần vì M3 dùng Isolation Forest: review thuê là một cụm đông tài khoản mới, không phải điểm "lạ", nên điểm M3 riêng chỉ đạt AUC 0,58. Từ nay fusion là **baseline**; `scored_reviews.parquet` vẫn là đầu vào của bước `ws`.
+
+### 8.6. Phương pháp chính — Weak supervision + Dawid–Skene (`src/fusion/ws_label_model.py`)
+
+**Bước 1. 8 luật (labeling function).** Mỗi luật là một điều kiện đọc được, bỏ phiếu *Spam* (1), *Thật* (0) hoặc bỏ phiếu trắng (−1). Ngưỡng tròn, không tinh chỉnh.
+
+| Luật | Phiếu | Điều kiện | Độ phủ |
+|---|---|---|---|
+| `LF_dup` | Spam | trùng gần y hệt (≥ 8 từ) với review của tài khoản khác (M1a) | 1,5% |
+| `LF_ad` | Spam | có link, số điện thoại, Zalo, từ khóa khuyến mãi (M1b) | 0,7% |
+| `LF_coord` | Spam | cùng nội dung ở quán khác trong ±14 ngày (M2b) | 0,2% |
+| `LF_burst` | Spam | chấm 1★/5★ trong đợt dồn review của quán (M2a) | 17,1% |
+| `LF_thin` | Spam | tài khoản ≤ 3 review, chấm 1★/5★, không phải Local Guide | 22,7% |
+| `LF_veteran` | Thật | Local Guide có ≥ 20 review | 35,8% |
+| `LF_detailed` | Thật | ≥ 30 từ và không trùng với ai | 16,6% |
+| `LF_moderate` | Thật | chấm 2–4★ và không nằm trong đợt dồn | 24,9% |
+
+80% review nhận ít nhất một phiếu.
+
+**Bước 2. Label model Dawid–Skene.** Giả định các luật độc lập với nhau khi đã biết nhãn thật y. Tham số: π = P(spam) và, với mỗi luật, xác suất luật bỏ phiếu Spam/Thật/trắng khi y = spam và khi y = thật. Học bằng EM: khởi tạo bằng bỏ phiếu đa số mềm → ước lượng tham số → tính lại P(spam | phiếu) → lặp tới khi log-likelihood đổi < 10⁻⁷ (tương đối).
+
+**Bước 3. Quyết định.** Xếp review theo P(spam) và đưa top 5%/10% cho người kiểm duyệt. **Không** dùng ngưỡng 0,5: mô hình quá tự tin (ước lượng π = 0,42 trong khi tỷ lệ spam quan sát được là 0,205) vì các luật thin/burst/sao cực đoan hay đi cùng nhau.
+
+**Đầu ra:** `processed/ws_scores.parquet` (`review_id`, `ws_score`, phiếu của 8 luật), `reports/tables/ws_lf_summary.csv` (độ phủ, chồng lấp, xung đột, tham số đã học của từng luật).
+
 ---
 
 ## 9. Gán nhãn: người + Claude
+
+> **Nhãn đang dùng cho kết quả hiện tại** là nhãn **theo quán** từ công cụ labeltool (cuối mục này), không phải gold set nhóm A/B. Gold set A/B là quy trình đã chuẩn bị nhưng chưa gán.
 
 Vì không có nhãn công khai, nhóm tự xây **gold set** (khoảng 500 review) để đo hệ thống. Tiêu chí chi tiết (6 cờ, quy tắc kết luận, ngoại lệ) nằm ở **[`docs/huong_dan_gan_nhan.md`](docs/huong_dan_gan_nhan.md)**; đây là tóm tắt.
 
@@ -410,6 +448,38 @@ python run_pipeline.py --stages eval     # = agreement, metrics, ablation, sensi
 
 Nếu kết quả không như kỳ vọng (ví dụ kết hợp nhiều tín hiệu không hơn một tín hiệu đơn), hãy **báo cáo trung thực** và phân tích nguyên nhân; đó cũng là kết quả có giá trị.
 
+Bảng trên là quy trình cho **gold set** (mục 9). Kết quả hiện có dùng nhãn theo quán, ở mục 10.2.
+
+### 10.2. Đánh giá phương pháp chính trên nhãn theo quán
+
+**Dữ liệu:** các file `data/labels/nhan_review_*.csv` xuất từ labeltool. Hiện có 568 review của 4 quán: 3 quán gán **toàn bộ** review có chữ/ảnh, quán thứ 4 gán 81 review gần nhất. Vì không chọn review theo điểm hệ thống, precision/recall/AUC đọc trực tiếp, không cần hiệu chỉnh thiên lệch chọn mẫu. Nhãn: 85 Spam, 153 Uncertain, 330 Genuine.
+
+```bash
+python run_pipeline.py --stages ws                # điểm của phương pháp chính
+python -m src.evaluation.labeltool_eval           # hệ thống Fisher vs baseline (bảng labeltool_eval_*.csv)
+python -m src.evaluation.exp_pu_ws                # PU learning + weak supervision (exp_pu_ws_*.csv, ~1,5 phút)
+python -m src.evaluation.ws_paper_results         # toàn bộ bảng/hình cuối cùng (paper_*.csv, paper_*.pdf|png)
+```
+
+`ws_paper_results.py` cần đã chạy `ws` và `exp_pu_ws`.
+
+**Cách so sánh:** 7 baseline (tài khoản mới, checklist 4 luật, PU learning kiểu Spy [Li et al. 2014], Isolation Forest trên đặc trưng thô, TF-IDF + LR học trên ViSpamReviews, fusion Fisher cũ, bỏ phiếu đa số trên cùng 8 luật). Chỉ số: ROC-AUC, PR-AUC (AP), P@50, precision/recall khi đọc top 5%/10% corpus. CI 95% bằng bootstrap phân tầng 2.000 lần; so sánh ghép cặp bằng DeLong (AUC) và bootstrap (ΔAP), hiệu chỉnh Holm. Uncertain xử lý 3 cách (loại / = Spam / = Genuine).
+
+**Kết quả chính (loại Uncertain: 415 review, 85 spam):**
+
+| Phương pháp | ROC-AUC | PR-AUC | WS hơn có ý nghĩa? (AUC / AP) |
+|---|---|---|---|
+| **WS + Dawid–Skene** | **0,899** [0,86–0,94] | **0,715** [0,64–0,80] | — |
+| Bỏ phiếu đa số (8 luật) | 0,899 | 0,695 | không / không |
+| Fusion Fisher (cũ) | 0,831 | 0,591 | có / không |
+| Checklist 4 luật | 0,838 | 0,571 | có / có |
+| Tài khoản mới | 0,842 | 0,511 | có / có |
+| PU learning (Spy) | 0,853 | 0,614 | có / không |
+| Học chuyển miền ViSpamReviews | 0,615 | 0,297 | có / có |
+| Isolation Forest | 0,227 | 0,131 | có / có |
+
+Đọc top 10% corpus: WS tìm được **73%** spam đã gán nhãn (độ chính xác 74%), Fisher 48%, checklist 38%. Ablation: bỏ luật `LF_thin` thì AUC còn 0,829; luật `LF_ad` không mang thông tin. Hạn chế của phép đánh giá này ở mục 16.
+
 ---
 
 ## 11. Quyền riêng tư và đạo đức
@@ -459,7 +529,9 @@ Cú pháp: `python run_pipeline.py [--config FILE] --stages a,b,c`. Có thể gh
 | `quality` | Bảng chất lượng 6 chiều | |
 | `eda` | Bảng và hình mô tả | |
 | `m1a` `m1b` `m2` `m3` | Các module chấm điểm (`m2` tính cả M2a và M2b) | Chạy `m1a` trước `m2` |
-| `fusion` | Gộp điểm, chia 3 vùng, xuất `top100_suspicious.csv` | |
+| `fusion` | Gộp điểm Fisher, chia 3 vùng, xuất `top100_suspicious.csv` (baseline) | |
+| `ws` | **Phương pháp chính**: 8 luật → Dawid–Skene → `ws_scores.parquet`, `ws_lf_summary.csv` | Cần đã chạy `all` (đọc `scored_reviews.parquet`) |
+| `media` `img_hash` `labeltool` | Công cụ gán nhãn theo quán (nhóm `labeltool_all`) | Mục 9 |
 | `sample` | Lấy mẫu gold set, tạo file gán nhãn | Không ghi đè `annotator_A/B.csv` đã có |
 | `llm_export` / `llm_import` | Xuất batch cho claude.ai / gộp kết quả | Mục 9 |
 | `agreement` | Kappa, so người–Claude, hợp nhất nhãn → `gold_final.csv` | |
@@ -469,7 +541,9 @@ Cú pháp: `python run_pipeline.py [--config FILE] --stages a,b,c`. Có thể gh
 | `m1b_phobert` | Phiên bản PhoBERT của M1b | **Chưa chạy thử**, nên thử trên Colab có GPU |
 | `demo` / `demo_labels` | Sinh dữ liệu và nhãn giả lập | Chỉ để chạy thử |
 
-Nhóm lệnh: `all` = `parse,clean,quality,eda,m1a,m1b,m2,m3,fusion,sample`; `eval` = `agreement,metrics,ablation,sensitivity`.
+Nhóm lệnh: `all` = `parse,clean,quality,eda,m1a,m1b,m2,m3,fusion,sample`; `eval` = `agreement,metrics,ablation,sensitivity`; `labeltool_all` = `media,img_hash,labeltool`.
+
+Đánh giá trên nhãn theo quán chạy bằng `python -m` (mục 10.2): `src.evaluation.labeltool_eval`, `src.evaluation.exp_pu_ws`, `src.evaluation.ws_paper_results`.
 
 ---
 
@@ -488,6 +562,9 @@ Các file nằm trong `reports/` (bảng ở `tables/`, hình ở `figures/`).
 | Results | `tables/metrics_main.csv`, `tables/metrics_robustness.csv`, `figures/fig_pk_curve.png`, `figures/fig_pr_curve.png` |
 | Ablation / sensitivity | `tables/ablation.csv`, `figures/fig_ablation.png`, `tables/sensitivity.csv` |
 | Error analysis | `tables/fp_top.csv`, `tables/fn_top.csv`, `tables/top100_suspicious.csv` |
+| **Phương pháp chính (WS)** | `tables/ws_lf_summary.csv` |
+| **Kết quả trên nhãn theo quán** | `tables/paper_main_comparison.csv` (3 cách xử lý Uncertain), `paper_operating_points.csv`, `paper_lf_table.csv` (ablation + độ chính xác từng luật), `paper_within_stratum.csv`, `paper_per_place.csv`, `paper_data_stats.csv`, `paper_label_stats.csv`, `figures/paper_roc_pr.pdf`, `figures/paper_forest.pdf` |
+| Thí nghiệm phụ | `tables/labeltool_eval_*.csv`, `tables/exp_pu_ws_compare.csv` |
 
 ---
 
@@ -520,57 +597,21 @@ Nhật ký chạy nằm ở `logs/pipeline.log` và `logs/reviews_run.log`.
 5. **Review chỉ chấm sao (~37%)** có rất ít bằng chứng; chỉ M2a, M3 chấm được (M1a, M1b, M2b cần có chữ).
 6. **Burst có thể là thật** (khai trương, sự kiện, báo chí), gây báo nhầm ở M2.
 7. **Chưa xử lý ảnh.** Nhiều review có ảnh giống nhau nhưng nội dung khác nhau cũng có thể là spam; module M1c (so ảnh bằng perceptual hash) là phần mở rộng làm sau. Link ảnh đã có sẵn trong các gói RPC đã lưu.
-8. **Cách gộp Fisher** được chọn vì tốt hơn trung bình trên dữ liệu *demo*; kết luận này phải kiểm chứng lại bằng ablation (dòng 7a/7b/7c) trên gold set thật. Fisher giả định các điểm độc lập: kiểm tra bằng `module_correlation.csv`. Trên 50 quán đầu, tương quan lớn nhất là 0,21 (M1a–M2b), nhưng là **sơ bộ** vì M2b chỉ khác 0 ở 6 review; cần báo cáo lại trên đủ 120 quán.
-9. **Vùng 2%/10% là hạn ngạch**, không phải ngưỡng đã hiệu chỉnh theo xác suất spam: nhóm chọn để giới hạn khối lượng xem tay.
+8. **Fusion Fisher đã bị thay** bằng weak supervision sau khi có nhãn thật (mục 10.2); chỉ còn làm baseline.
+9. **Ngân sách 5%/10% là hạn ngạch**, không phải ngưỡng đã hiệu chỉnh theo xác suất spam: nhóm chọn để giới hạn khối lượng xem tay.
 10. **`m1b_phobert.py` chưa được chạy thử** (không tải được model trong môi trường phát triển).
 11. **Không so sánh với dữ liệu nước ngoài.** Bộ GMR-PL (Google Maps, tiếng Ba Lan) và các bộ Yelp bị loại khỏi đánh giá vì khác ngôn ngữ/thị trường.
+12. **Luật trùng với hướng dẫn gán nhãn.** `LF_thin` gần giống cờ f4, `LF_burst` gần giống cờ f6 của rubric, nên một phần kết quả có thể chỉ là "đo lại rubric". Checklist dùng cùng thông tin vẫn thua có ý nghĩa, và trong nhóm review người gán đã bật cờ đợt dồn, AUC của WS vẫn 0,961; nhưng cần nhãn độc lập để kết luận chắc.
+13. **Tập nhãn nhỏ:** 4 quán, 79/85 spam đến từ 2 quán; mỗi quán một người gán nên chưa đo được κ; người gán có xem bằng chứng tính từ cùng các tín hiệu. 98,4% nhãn trùng với luật tham khảo của rubric.
+14. **Kết quả mang tính khám phá:** bộ 8 luật được viết sau một phân tích sơ bộ trên chính tập nhãn này. Cần gán nhãn quán mới (2 người, không xem gợi ý cờ) để xác nhận.
+15. **Dawid–Skene quá tự tin** (giả định độc lập bị vi phạm): P(spam) bão hòa gần 1 với nhiều review, chỉ dùng để xếp hạng. Trên cùng 8 luật, nó chưa hơn bỏ phiếu đa số về AUC.
 
 ---
 
-## 17. Đẩy code lên GitHub
-
-`.gitignore` đã được thiết lập để **chỉ** mã nguồn, cấu hình mẫu và tài liệu được đưa lên (khoảng 53 file). Dữ liệu, bí mật và profile Chrome đều bị loại.
-
-**Trước khi push, luôn kiểm tra:**
-
-```bash
-git status --short            # chỉ nên thấy mã nguồn, README, docs, config.yaml, .env.example, .gitignore
-git add -n . | wc -l          # ~53 file; nếu hàng trăm/nghìn => có dữ liệu lọt vào, DỪNG và kiểm tra
-git add -n . | grep -Ei "\.env'|parquet|jsonl|chrome|data/|reports/"   # không được ra dòng nào
-```
-
-**Các thứ KHÔNG bao giờ được push:**
-
-| Thứ | Vì sao |
-|---|---|
-| `.env` | Chứa `REVIEWER_SALT` và token |
-| `data/`, `snapshot_*/`, `trial_1place/`, `demo/` | Tên reviewer, nội dung review, ID thật, gold set |
-| `reports/`, `logs/` | Có trích nguyên văn review và tên quán |
-| `.chrome_profile*/` | Cookie đăng nhập Google, ~1 GB |
-| `.venv/` | Môi trường ảo, ~700 MB |
-
-**Các lệnh lần đầu:**
-
-```bash
-git init                                   # bỏ qua nếu đã có
-git add .
-git commit -m "Pipeline phát hiện đánh giá giả mạo Google Maps VN"
-git branch -M main
-git remote add origin https://github.com/<tài-khoản>/<tên-repo>.git
-git push -u origin main
-```
-
-**Nếu lỡ push dữ liệu hoặc `.env` lên:** xóa file khỏi lịch sử là không đủ (git vẫn giữ bản cũ). Coi như đã lộ: đổi `REVIEWER_SALT` và token, đăng xuất tài khoản Google phụ, rồi viết lại lịch sử bằng `git filter-repo` hoặc xóa repo tạo lại. Nên đặt repo ở chế độ **private**.
-
----
-
-## 18. Tài liệu liên quan
+## 17. Tài liệu liên quan
 
 | Tài liệu | Nội dung |
 |---|---|
-| [`docs/PLAN.md`](docs/PLAN.md) | Kế hoạch triển khai và lý do từng quyết định thiết kế |
 | [`docs/huong_dan_gan_nhan.md`](docs/huong_dan_gan_nhan.md) | Tiêu chí gán nhãn đầy đủ cho người và Claude |
-| `docs/Detecting Fake Reviews on Google Maps in Vietnam.xlsx` | Ma trận ~40 công trình liên quan |
-| `docs/nhóm 12 - data processing.docx` | Đề cương nộp môn học |
 
-**Trích dẫn chính:** Gryka & Janicki (2023), *Detecting Fake Reviews in Google Maps—A Case Study*, Applied Sciences 13(10), 6331 (bộ dữ liệu Google Maps có nhãn duy nhất, tiếng Ba Lan); Van Dinh & Luu (2024), *Metadata Integration for Spam Reviews Detection on Vietnamese E-Commerce Websites* (ViSpamReviews v2).
+**Trích dẫn chính:** Dawid & Skene (1979), *Maximum Likelihood Estimation of Observer Error-Rates Using the EM Algorithm* (label model); Ratner et al. (2017), *Snorkel: Rapid Training Data Creation with Weak Supervision* (weak supervision); Li et al. (2014), *Spotting Fake Reviews using Positive-Unlabeled Learning* (baseline PU); Gryka & Janicki (2023), *Detecting Fake Reviews in Google Maps—A Case Study*, Applied Sciences 13(10), 6331 (bộ dữ liệu Google Maps có nhãn duy nhất, tiếng Ba Lan); Van Dinh & Luu (2024), *Metadata Integration for Spam Reviews Detection on Vietnamese E-Commerce Websites* (ViSpamReviews v2).
